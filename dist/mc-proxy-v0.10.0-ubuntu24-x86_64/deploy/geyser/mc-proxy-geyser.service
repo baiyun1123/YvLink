@@ -1,0 +1,41 @@
+[Unit]
+Description=Geyser Standalone Bedrock to Java Protocol Translator
+After=network-online.target mc-proxy.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=geyser
+Group=geyser
+WorkingDirectory=/opt/mc-proxy/geyser
+ExecStart=/usr/bin/java -Xms256M -Xmx1024M -jar /opt/mc-proxy/geyser/Geyser-Standalone.jar
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RemoveIPC=true
+ReadWritePaths=/opt/mc-proxy/geyser
+
+[Install]
+WantedBy=multi-user.target

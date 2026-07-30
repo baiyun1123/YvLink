@@ -1,0 +1,7 @@
+/target/
+/config.toml
+*.log
+__pycache__/
+*.py[cod]
+/.matrix-eula/
+.DS_Store

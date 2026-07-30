@@ -1,0 +1,324 @@
+{
+  "generated_at": "2026-07-29T21:00:24+0000",
+  "passed": true,
+  "results": [
+    {
+      "loader": "fabric",
+      "backend": "127.0.0.1:26701",
+      "protocol": 767,
+      "passed": true,
+      "status": {
+        "direct_equals_transparent": true,
+        "direct_equals_managed": true,
+        "direct": {
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          },
+          "description": "MC Relay real matrix - fabric",
+          "players": {
+            "max": 8,
+            "online": 0
+          }
+        },
+        "transparent": {
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          },
+          "description": "MC Relay real matrix - fabric",
+          "players": {
+            "max": 8,
+            "online": 0
+          }
+        },
+        "managed": {
+          "description": "MC Relay real matrix - fabric",
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        }
+      },
+      "login_and_configuration": {
+        "direct": {
+          "login_success": {
+            "packet_id": 2,
+            "payload_length": 31,
+            "payload_sha256": "e56b3648f4d8d3ac6f7bcbf5e28e2ed58b64ef1dce1e536d0cb0c874add52ca9"
+          },
+          "first_configuration": {
+            "packet_id": 1,
+            "payload_length": 23,
+            "payload_sha256": "53fd4555a72d5298e539f0051eb669f1d36d226193afdf33ba34b301cdaf466a"
+          }
+        },
+        "proxied": {
+          "login_success": {
+            "packet_id": 2,
+            "payload_length": 31,
+            "payload_sha256": "e56b3648f4d8d3ac6f7bcbf5e28e2ed58b64ef1dce1e536d0cb0c874add52ca9"
+          },
+          "first_configuration": {
+            "packet_id": 1,
+            "payload_length": 23,
+            "payload_sha256": "53fd4555a72d5298e539f0051eb669f1d36d226193afdf33ba34b301cdaf466a"
+          }
+        },
+        "equal": true
+      },
+      "health_before_stop": {
+        "active_connections": 0,
+        "address": "127.0.0.1:26701",
+        "connect_latency_ms": 12,
+        "consecutive_health_failures": 0,
+        "consecutive_health_successes": 1,
+        "failed_attempts": 0,
+        "health": "healthy",
+        "health_check_failures": 0,
+        "health_check_latency_ms": 14,
+        "health_check_successes": 1,
+        "last_checked_secs_ago": 1,
+        "successful_connections": 1
+      },
+      "health_after_stop": {
+        "active_connections": 0,
+        "address": "127.0.0.1:26701",
+        "connect_latency_ms": 12,
+        "consecutive_health_failures": 1,
+        "consecutive_health_successes": 0,
+        "failed_attempts": 0,
+        "health": "unhealthy",
+        "health_check_failures": 1,
+        "health_check_latency_ms": 14,
+        "health_check_successes": 1,
+        "last_checked_secs_ago": 0,
+        "successful_connections": 1
+      }
+    },
+    {
+      "loader": "forge",
+      "backend": "127.0.0.1:26702",
+      "protocol": 767,
+      "passed": true,
+      "status": {
+        "direct_equals_transparent": true,
+        "direct_equals_managed": true,
+        "direct": {
+          "forgeData": {
+            "channels": [],
+            "mods": [],
+            "truncated": false,
+            "fmlNetworkVersion": 0,
+            "d": "I\u0000\u0000\u0004㐤獋㙖⹌ᦘ̺⸱扤䒸⠱癠湍ᥙҀ慨䣜⇍嬋ٖ†嬁㎷湩Ȁ౐ୃ曦ಭ៛㊹楧棦׉䮣曶‍\u0000"
+          },
+          "description": "MC Relay real matrix - forge",
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        },
+        "transparent": {
+          "forgeData": {
+            "channels": [],
+            "mods": [],
+            "truncated": false,
+            "fmlNetworkVersion": 0,
+            "d": "I\u0000\u0000\u0004㐤獋㙖⹌ᦘ̺⸱扤䒸⠱癠湍ᥙҀ慨䣜⇍嬋ٖ†嬁㎷湩Ȁ౐ୃ曦ಭ៛㊹楧棦׉䮣曶‍\u0000"
+          },
+          "description": "MC Relay real matrix - forge",
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        },
+        "managed": {
+          "description": "MC Relay real matrix - forge",
+          "forgeData": {
+            "channels": [],
+            "d": "I\u0000\u0000\u0004㐤獋㙖⹌ᦘ̺⸱扤䒸⠱癠湍ᥙҀ慨䣜⇍嬋ٖ†嬁㎷湩Ȁ౐ୃ曦ಭ៛㊹楧棦׉䮣曶‍\u0000",
+            "fmlNetworkVersion": 0,
+            "mods": [],
+            "truncated": false
+          },
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        }
+      },
+      "login_and_configuration": {
+        "direct": {
+          "login_success": {
+            "packet_id": 2,
+            "payload_length": 30,
+            "payload_sha256": "4802f695287dfd56d222d75d547d6cb30c3167c80ba86f95c9e9591da558569d"
+          },
+          "first_configuration": {
+            "packet_id": 1,
+            "payload_length": 47,
+            "payload_sha256": "a90807b14508b0c291fef3f264ba466752a69438aee8d2665318b8670e1ecb48"
+          }
+        },
+        "proxied": {
+          "login_success": {
+            "packet_id": 2,
+            "payload_length": 30,
+            "payload_sha256": "4802f695287dfd56d222d75d547d6cb30c3167c80ba86f95c9e9591da558569d"
+          },
+          "first_configuration": {
+            "packet_id": 1,
+            "payload_length": 47,
+            "payload_sha256": "a90807b14508b0c291fef3f264ba466752a69438aee8d2665318b8670e1ecb48"
+          }
+        },
+        "equal": true
+      },
+      "health_before_stop": {
+        "active_connections": 0,
+        "address": "127.0.0.1:26702",
+        "connect_latency_ms": 10,
+        "consecutive_health_failures": 0,
+        "consecutive_health_successes": 1,
+        "failed_attempts": 0,
+        "health": "healthy",
+        "health_check_failures": 0,
+        "health_check_latency_ms": 12,
+        "health_check_successes": 1,
+        "last_checked_secs_ago": 1,
+        "successful_connections": 1
+      },
+      "health_after_stop": {
+        "active_connections": 0,
+        "address": "127.0.0.1:26702",
+        "connect_latency_ms": 10,
+        "consecutive_health_failures": 1,
+        "consecutive_health_successes": 0,
+        "failed_attempts": 0,
+        "health": "unhealthy",
+        "health_check_failures": 1,
+        "health_check_latency_ms": 12,
+        "health_check_successes": 1,
+        "last_checked_secs_ago": 0,
+        "successful_connections": 1
+      }
+    },
+    {
+      "loader": "neoforge",
+      "backend": "127.0.0.1:26703",
+      "protocol": 767,
+      "passed": true,
+      "status": {
+        "direct_equals_transparent": true,
+        "direct_equals_managed": true,
+        "direct": {
+          "isModded": true,
+          "description": "MC Relay real matrix - neoforge",
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        },
+        "transparent": {
+          "isModded": true,
+          "description": "MC Relay real matrix - neoforge",
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        },
+        "managed": {
+          "description": "MC Relay real matrix - neoforge",
+          "isModded": true,
+          "players": {
+            "max": 8,
+            "online": 0
+          },
+          "version": {
+            "name": "1.21.1",
+            "protocol": 767
+          }
+        }
+      },
+      "login_and_configuration": {
+        "direct": {
+          "login_success": {
+            "packet_id": 2,
+            "payload_length": 33,
+            "payload_sha256": "cb63108424800299b91bf3221e015ea28149da3454623a7be6604333228d33dd"
+          },
+          "first_configuration": {
+            "packet_id": 1,
+            "payload_length": 76,
+            "payload_sha256": "27287bdcc6fd6df6c4ceaa67098b4e3f34fe8b2cfac32de4c5b2785730f4e27f"
+          }
+        },
+        "proxied": {
+          "login_success": {
+            "packet_id": 2,
+            "payload_length": 33,
+            "payload_sha256": "cb63108424800299b91bf3221e015ea28149da3454623a7be6604333228d33dd"
+          },
+          "first_configuration": {
+            "packet_id": 1,
+            "payload_length": 76,
+            "payload_sha256": "27287bdcc6fd6df6c4ceaa67098b4e3f34fe8b2cfac32de4c5b2785730f4e27f"
+          }
+        },
+        "equal": true
+      },
+      "health_before_stop": {
+        "active_connections": 0,
+        "address": "127.0.0.1:26703",
+        "connect_latency_ms": 11,
+        "consecutive_health_failures": 0,
+        "consecutive_health_successes": 1,
+        "failed_attempts": 0,
+        "health": "healthy",
+        "health_check_failures": 0,
+        "health_check_latency_ms": 12,
+        "health_check_successes": 1,
+        "last_checked_secs_ago": 1,
+        "successful_connections": 1
+      },
+      "health_after_stop": {
+        "active_connections": 0,
+        "address": "127.0.0.1:26703",
+        "connect_latency_ms": 11,
+        "consecutive_health_failures": 1,
+        "consecutive_health_successes": 0,
+        "failed_attempts": 0,
+        "health": "unhealthy",
+        "health_check_failures": 1,
+        "health_check_latency_ms": 12,
+        "health_check_successes": 1,
+        "last_checked_secs_ago": 0,
+        "successful_connections": 1
+      }
+    }
+  ]
+}

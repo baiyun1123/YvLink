@@ -1,0 +1,77 @@
+[admin]
+# 管理 HTTP 端只允许监听回环地址，由 Nginx 提供公网 HTTPS
+listen = "127.0.0.1:18080"
+
+[settings]
+# 所有域名路由共用这一个 Minecraft Java 入口
+listen = "0.0.0.0:25565"
+proxy_enabled = true
+max_connections = 10000
+connect_timeout_ms = 5000
+handshake_timeout_ms = 5000
+shutdown_grace_secs = 30
+copy_buffer_bytes = 32768
+socket_buffer_bytes = 1048576
+listen_backlog = 4096
+tcp_nodelay = true
+reuse_port = false
+stats_interval_secs = 10
+
+# 按文件中的先后顺序匹配，首个命中的 host 决定 backend。
+[[rules]]
+id = "play"
+name = "主服"
+host = "play.example.com"
+backend = "10.0.0.2:25565"
+modify_virtual_host = false
+whitelist_enabled = true
+whitelist = ["Alice", "Bob"]
+whitelist_message = "§c你不在此服务器的白名单中。"
+enabled = true
+
+[rules.status]
+# custom：完全由代理生成；backend：读取后端状态并只覆盖下面明确填写的字段。
+mode = "custom"
+cache_ttl_secs = 10
+motd = "§a主服在线\n§7由 MC Relay 提供入口"
+version_name = "原版 1.21"
+# 留空时跟随发起查询的客户端协议号
+# protocol = 767
+online = 0
+max = 100
+
+[[rules]]
+id = "mod"
+name = "模组服"
+host = ["*.mod.example.com", "mod.example.com"]
+backend = "backend.example.com:25565"
+modify_virtual_host = true
+whitelist_enabled = false
+whitelist = []
+enabled = true
+
+# 模组服建议使用 backend 模式，保留 Forge/NeoForge 的 forgeData、
+# 旧版 modinfo、favicon、玩家 sample 和其他未知扩展字段。
+[rules.status]
+mode = "backend"
+cache_ttl_secs = 60
+# 可选覆盖；删除或注释字段即保留后端原值。
+motd = "§b模组服在线"
+
+[rules.status.fallback]
+motd = "§c模组服暂时离线，请稍后再试"
+version_name = "后端不可用"
+protocol = -1
+online = 0
+max = 100
+
+# 放在最后，接收未命中前面规则的其他域名。
+[[rules]]
+id = "default"
+name = "默认线路"
+host = "*"
+backend = "10.0.0.10:25565"
+modify_virtual_host = false
+whitelist_enabled = false
+whitelist = []
+enabled = true

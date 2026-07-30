@@ -1,0 +1,46 @@
+[admin]
+listen = "127.0.0.1:18080"
+
+[crossplay]
+enabled = false
+bedrock_listen = "0.0.0.0:19132"
+java_address = "bedrock.example.com"
+java_port = 25565
+auth_type = "online"
+
+[settings]
+listen = "0.0.0.0:25565"
+proxy_enabled = false
+max_connections = 10000
+connect_timeout_ms = 5000
+handshake_timeout_ms = 5000
+shutdown_grace_secs = 30
+copy_buffer_bytes = 32768
+socket_buffer_bytes = 1048576
+listen_backlog = 4096
+tcp_nodelay = true
+reuse_port = false
+stats_interval_secs = 10
+
+[[rules]]
+id = "default"
+name = "默认线路"
+host = "*"
+backend = "127.0.0.1:25566"
+strategy = "sequential"
+proxy_protocol = "off"
+modify_virtual_host = false
+whitelist_enabled = false
+whitelist = []
+enabled = true
+
+[rules.health_check]
+enabled = false
+mode = "tcp"
+interval_secs = 30
+timeout_ms = 2000
+unhealthy_threshold = 3
+healthy_threshold = 2
+minecraft_protocol = 769
+
+# 在管理页面添加 host -> backend 路由，再启用全局 Minecraft 入口。

@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>MC Relay API 文档</title>
+  <style>
+    :root{--bg:#080b11;--panel:#101620;--line:#263142;--text:#edf3fa;--muted:#8b98aa;--green:#48d7a4;--blue:#6d8cff;--red:#f1727b}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:var(--green)}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .layout{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}.side{position:sticky;top:0;height:100vh;padding:28px 20px;border-right:1px solid var(--line);background:#0b0f16;overflow:auto}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}.mark{width:42px;height:42px;display:grid;place-items:center;border:1px solid #327d66;border-radius:11px;color:var(--green);font:700 12px ui-monospace}.brand h1{margin:0;font-size:16px}.brand p{margin:2px 0 0;color:var(--muted);font-size:10px;letter-spacing:.12em}
+    .search{position:relative;margin-bottom:20px}.search svg{position:absolute;left:12px;top:12px;width:17px;height:17px;fill:none;stroke:var(--muted);stroke-width:2}.search input{width:100%;height:41px;padding:0 10px 0 38px;border:1px solid var(--line);border-radius:9px;color:var(--text);background:#090d13;outline:0}.search input:focus{border-color:var(--green)}
+    nav{display:grid;gap:5px}nav a{padding:8px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:12px}nav a:hover{color:var(--text);background:var(--panel)}
+    main{width:min(980px,100%);padding:54px 48px 90px}.hero{padding-bottom:34px;border-bottom:1px solid var(--line)}.hero p{max-width:720px;color:var(--muted)}.hero h1{margin:0;font-size:34px;letter-spacing:-.04em}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.pill{padding:5px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px}
+    h2{margin:44px 0 14px;font-size:22px}h3{margin:0;font-size:17px}.note{padding:15px 17px;border-left:3px solid var(--green);border-radius:7px;background:rgba(72,215,164,.06);color:var(--muted)}
+    .endpoint{margin-top:20px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.endpoint-head{padding:18px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}.method{min-width:62px;padding:5px 8px;border-radius:6px;text-align:center;color:#06110d;background:var(--green);font:700 11px ui-monospace}.method.put{background:var(--blue);color:#070b16}.method.post{background:#d9b768;color:#171005}.method.delete{background:var(--red);color:#190709}.path{font:600 13px ui-monospace}.endpoint-body{padding:20px}.endpoint-body>p{color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin:14px 0}th,td{padding:10px 12px;border:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-size:11px;background:#0b1018}td{font-size:12px}td code{color:var(--green)}
+    pre{margin:14px 0 0;padding:16px;overflow:auto;border:1px solid var(--line);border-radius:9px;color:#cbd8e7;background:#080c12;font-size:11px;line-height:1.6}.label{margin:18px 0 7px;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.hidden{display:none}
+    @media(max-width:760px){.layout{display:block}.side{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}nav{grid-template-columns:1fr 1fr}main{padding:34px 18px 70px}.hero h1{font-size:27px}.endpoint-head{align-items:flex-start;flex-wrap:wrap}table{display:block;overflow-x:auto;white-space:nowrap}}
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand"><span class="mark">API</span><div><h1>MC Relay</h1><p>CONTROL INTERFACE</p></div></div>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="检索接口或字段"></div>
+    <nav id="toc">
+      <a href="#auth">认证说明</a>
+      <a href="#health">健康检查</a>
+      <a href="#session">认证检查</a>
+      <a href="#status">运行状态</a>
+      <a href="#crossplay-get">读取互通状态</a>
+      <a href="#crossplay-put">修改互通配置</a>
+      <a href="#config-get">读取配置</a>
+      <a href="#config-put">修改配置</a>
+      <a href="#rules-get">规则列表</a>
+      <a href="#rules-post">新建规则</a>
+      <a href="#rules-put">修改规则</a>
+      <a href="#rules-delete">删除规则</a>
+      <a href="#errors">错误码</a>
+    </nav>
+  </aside>
+  <main>
+    <header class="hero">
+      <h1>管理 API 文档</h1>
+      <p>用于查询 Minecraft Java TCP 转发状态、读取实时流量指标，以及在线管理转发规则和全局参数。管理接口默认只通过同源 HTTPS 页面访问。</p>
+      <div class="meta"><span class="pill">Base URL: /api/v1</span><span class="pill">JSON</span><span class="pill">Bearer Token</span><span class="pill">v0.11.0</span></div>
+    </header>
+
+    <section id="auth" data-search="认证 bearer token authorization 管理令牌">
+      <h2>认证说明</h2>
+      <div class="note">除 <code>/healthz</code> 外，所有接口都必须携带 <code>Authorization: Bearer &lt;管理令牌&gt;</code>。令牌来自服务端环境变量 <code>MC_PROXY_ADMIN_TOKEN</code>，最少 32 个字符。</div>
+      <pre>Authorization: Bearer your-admin-token
+Content-Type: application/json</pre>
+    </section>
+
+    <section class="endpoint" id="health" data-search="健康检查 healthz nginx 无认证">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/healthz</span><h3>健康检查</h3></div>
+      <div class="endpoint-body">
+        <p>供 Nginx、systemd 或监控系统确认管理 HTTP 服务能够响应。不需要认证。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>HTTP/1.1 200 OK
+ok</pre>
+        <div class="label">错误码</div><p>服务不可用时由上游返回 502 或连接失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="session" data-search="认证检查 session token 登录">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/session</span><h3>检查管理令牌</h3></div>
+      <div class="endpoint-body">
+        <p>登录页面使用该接口验证令牌，不创建服务器端会话。</p>
+        <div class="label">请求参数</div><p>仅 Authorization 请求头。</p>
+        <div class="label">成功响应</div><pre>{"ok":true,"data":{"authenticated":true}}</pre>
+        <div class="label">错误码</div><p><code>401</code>：令牌缺失或不匹配。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="status" data-search="状态 status 流量 并发 upload download metrics failures uptime 健康检查 health backend">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/status</span><h3>读取运行状态</h3></div>
+      <div class="endpoint-body">
+        <p>返回实例运行时间、单一 Minecraft 监听入口的聚合指标，以及按顺序生效的 host 路由状态。上传/下载字节会在数据成功写入另一端后实时累加。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>{
+  "ok": true,
+  "data": {
+    "version": "0.11.0",
+    "uptime_seconds": 3600,
+    "totals": {
+      "accepted_connections": 1200,
+      "active_connections": 46,
+      "rejected_connections": 0,
+      "unmarked_handshakes": 1080,
+      "legacy_forge_handshakes": 12,
+      "modern_forge_login_handshakes": 93,
+      "configuration_forge_handshakes": 15,
+      "proxy_protocol_v1_headers": 20,
+      "proxy_protocol_v2_headers": 8,
+      "health_check_successes": 860,
+      "health_check_failures": 4,
+      "whitelist_denials": 3,
+      "local_status_responses": 418,
+      "status_cache_hits": 390,
+      "status_fallbacks": 1,
+      "backend_attempt_failures": 4,
+      "backend_failovers": 3,
+      "backend_failures": 2,
+      "forwarding_failures": 1,
+      "upload_bytes": 104857600,
+      "download_bytes": 524288000
+    },
+    "proxy_running": true,
+    "rules": [
+      {
+        "id": "play",
+        "name": "主服",
+        "host": ["play.example.com", "*.play.example.com"],
+        "backend": ["backend-a.example.com:25565", "backend-b.example.com:25565"],
+        "strategy": "least-connections",
+        "proxy_protocol": "off",
+        "health_check": {
+          "enabled": true,
+          "mode": "minecraft-status",
+          "interval_secs": 30,
+          "timeout_ms": 2000,
+          "unhealthy_threshold": 3,
+          "healthy_threshold": 2,
+          "minecraft_host": "play.example.com",
+          "minecraft_protocol": 769
+        },
+        "modify_virtual_host": false,
+        "status": {
+          "mode": "backend",
+          "cache_ttl_secs": 60,
+          "motd": "§a欢迎来到主服",
+          "version_name": null,
+          "protocol": null,
+          "online": null,
+          "max": null,
+          "fallback": {
+            "motd": "§c后端暂时离线",
+            "version_name": "维护中",
+            "protocol": -1,
+            "online": 0,
+            "max": 100
+          }
+        },
+        "whitelist_enabled": true,
+        "whitelist": ["Alice", "Bob"],
+        "whitelist_message": "§c你不在此服务器的白名单中。",
+        "enabled": true,
+        "running": true,
+        "backend_health": [
+          {"address":"backend-a.example.com:25565","health":"healthy","last_checked_secs_ago":8,"health_check_latency_ms":7,"consecutive_health_successes":12,"consecutive_health_failures":0,"health_check_successes":430,"health_check_failures":1,"active_connections":3,"successful_connections":120,"failed_attempts":1,"connect_latency_ms":8},
+          {"address":"backend-b.example.com:25565","health":"unhealthy","last_checked_secs_ago":8,"health_check_latency_ms":12,"consecutive_health_successes":0,"consecutive_health_failures":3,"health_check_successes":430,"health_check_failures":3,"active_connections":0,"successful_connections":98,"failed_attempts":0,"connect_latency_ms":12}
+        ]
+      }
+    ]
+  }
+}</pre>
+        <div class="label">模组握手指标</div>
+        <table>
+          <tr><th>字段</th><th>说明</th></tr>
+          <tr><td><code>unmarked_handshakes</code></td><td>没有加载器 Host 标记的握手；原版和 Fabric 初始握手无法可靠区分，因此合并统计。</td></tr>
+          <tr><td><code>legacy_forge_handshakes</code></td><td>带独立 <code>FML</code> 标记的旧版 Forge 握手。</td></tr>
+          <tr><td><code>modern_forge_login_handshakes</code></td><td>带 <code>FML2</code> 或 <code>FML3</code> 标记、在 Login 阶段协商的 Forge 握手。</td></tr>
+          <tr><td><code>configuration_forge_handshakes</code></td><td>带 <code>FORGE</code> 或 NAT 版本后缀的 1.20.2+ Configuration 系握手；可包含 Forge/NeoForge 客户端。</td></tr>
+        </table>
+        <p>这些计数只识别初始 Host 标记，不解码 Login、Configuration、Play 或加密后的模组负载，也不等同于成功登录人数。</p>
+        <div class="label">主动健康字段</div>
+        <p><code>health</code> 为 <code>unknown</code>、<code>healthy</code> 或 <code>unhealthy</code>；<code>last_checked_secs_ago</code> 是距最近完成探测的秒数。健康检查总成功/失败数与每后端连续成功/失败次数分别用于运行监控和阈值状态判断。<code>tcp</code> 成功只代表端口可达；<code>minecraft-status</code> 成功表示已完成 Java Handshake、Status JSON 结构校验及 Ping/Pong，但不代表玩家能够登录或模组协商成功。</p>
+        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="crossplay-get" data-search="基岩互通 crossplay geyser bedrock udp raknet 状态">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/crossplay</span><h3>读取基岩互通配置与状态</h3></div>
+      <div class="endpoint-body">
+        <p>返回 Geyser 互通预期配置，并在启用时向 Bedrock UDP 入口发送真实 RakNet Unconnected Ping。<code>online=true</code> 才表示翻译器实际响应；该接口不会把普通 UDP 可达误报为 Geyser 在线。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>{
+  "ok": true,
+  "data": {
+    "config": {
+      "enabled": true,
+      "bedrock_listen": "0.0.0.0:19132",
+      "java_address": "bedrock.example.com",
+      "java_port": 25565,
+      "auth_type": "online"
+    },
+    "status": {
+      "enabled": true,
+      "online": true,
+      "bedrock_listen": "0.0.0.0:19132",
+      "java_target": "bedrock.example.com:25565",
+      "auth_type": "online",
+      "latency_ms": 2,
+      "motd": "MCPE;Crossplay;...",
+      "error": null
+    }
+  }
+}</pre>
+        <div class="label">错误码</div><p><code>401</code>：认证失败。Geyser 离线仍返回 <code>200</code>，并通过 <code>online=false</code> 和 <code>error</code> 描述探测结果。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="crossplay-put" data-search="修改基岩互通 crossplay put geyser floodgate online offline">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/crossplay</span><h3>修改基岩互通配置</h3></div>
+      <div class="endpoint-body">
+        <p>校验并原子持久化互通配置，然后立即执行一次 RakNet 健康探测。Geyser 是独立翻译器，必须另外使用相同的监听与 Java 目标参数；保存此配置不会下载、启动或伪装 Geyser。</p>
+        <div class="label">请求体参数</div>
+        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
+          <tr><td><code>enabled</code></td><td>布尔</td><td>是否启用互通健康监控。</td></tr>
+          <tr><td><code>bedrock_listen</code></td><td>SocketAddr</td><td>预期 Geyser Bedrock UDP 监听地址，端口不能为 0。</td></tr>
+          <tr><td><code>java_address</code></td><td>字符串</td><td>Geyser 连接的 Java 主机；建议匹配一条 mc-proxy Host 路由并在内部解析到本机。</td></tr>
+          <tr><td><code>java_port</code></td><td>整数</td><td>1 到 65535，通常为 mc-proxy Java 入口端口。</td></tr>
+          <tr><td><code>auth_type</code></td><td>枚举</td><td><code>online</code>、<code>floodgate</code> 或 <code>offline</code>。公网不建议 offline；Floodgate 需要可控后端配套安装。</td></tr>
+        </tbody></table>
+        <div class="label">请求示例</div><pre>{"enabled":true,"bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online"}</pre>
+        <div class="label">成功响应</div><p><code>200</code>，结构与读取接口相同。</p>
+        <div class="label">错误码</div><p><code>400</code>：地址、端口或目标参数非法，或配置无法持久化。<code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="config-get" data-search="读取配置 config settings rules admin">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/config</span><h3>读取完整配置</h3></div>
+      <div class="endpoint-body">
+        <p>返回管理监听地址、全局转发参数和规则列表。响应不包含管理令牌。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>{
+  "ok": true,
+  "data": {
+    "admin": {"listen":"127.0.0.1:18080"},
+    "crossplay": {"enabled":false,"bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online"},
+    "settings": {
+      "listen": "0.0.0.0:25565",
+      "proxy_enabled": true,
+      "max_connections": 10000,
+      "connect_timeout_ms": 5000,
+      "handshake_timeout_ms": 5000,
+      "shutdown_grace_secs": 30,
+      "copy_buffer_bytes": 32768,
+      "socket_buffer_bytes": 1048576,
+      "listen_backlog": 4096,
+      "tcp_nodelay": true,
+      "reuse_port": false,
+      "stats_interval_secs": 10
+    },
+    "rules": []
+  }
+}</pre>
+        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="config-put" data-search="修改配置 config put timeout buffer nodelay reuseport">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/config</span><h3>修改全局参数</h3></div>
+      <div class="endpoint-body">
+        <p>替换全局入口和转发参数，校验通过后重启唯一的 Minecraft 监听器并原子写入 TOML。现有连接在宽限期内优雅结束。</p>
+        <div class="label">请求体参数</div>
+        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
+          <tr><td><code>listen</code></td><td>SocketAddr</td><td>所有 host 路由共用的 Minecraft Java 监听地址。</td></tr>
+          <tr><td><code>proxy_enabled</code></td><td>布尔</td><td>是否监听 Minecraft 入口。</td></tr>
+          <tr><td><code>max_connections</code></td><td>整数</td><td>入口全局最大并发，1 到 1000000。</td></tr>
+          <tr><td><code>connect_timeout_ms</code></td><td>整数</td><td>大于 0，后端连接超时。</td></tr>
+          <tr><td><code>handshake_timeout_ms</code></td><td>整数</td><td>大于 0，读取 Minecraft 握手域名的超时。</td></tr>
+          <tr><td><code>shutdown_grace_secs</code></td><td>整数</td><td>1 到 300。</td></tr>
+          <tr><td><code>copy_buffer_bytes</code></td><td>整数</td><td>4096 到 1048576。</td></tr>
+          <tr><td><code>socket_buffer_bytes</code></td><td>整数</td><td>0 到 16777216；0 使用系统默认。</td></tr>
+          <tr><td><code>listen_backlog</code></td><td>整数</td><td>1 到 65535。</td></tr>
+          <tr><td><code>tcp_nodelay</code></td><td>布尔</td><td>是否启用 TCP_NODELAY。</td></tr>
+          <tr><td><code>reuse_port</code></td><td>布尔</td><td>Linux 多实例共享端口时使用。</td></tr>
+          <tr><td><code>stats_interval_secs</code></td><td>整数</td><td>大于 0。</td></tr>
+        </tbody></table>
+        <div class="label">请求示例</div><pre>{"listen":"0.0.0.0:25565","proxy_enabled":true,"max_connections":10000,"connect_timeout_ms":5000,"handshake_timeout_ms":5000,"shutdown_grace_secs":30,"copy_buffer_bytes":32768,"socket_buffer_bytes":1048576,"listen_backlog":4096,"tcp_nodelay":true,"reuse_port":false,"stats_interval_secs":10}</pre>
+        <div class="label">成功响应</div><p><code>200</code>，data 为更新后的完整配置。</p>
+        <div class="label">错误码</div><p><code>400</code>：参数非法、端口绑定失败或配置无法持久化。<code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="rules-get" data-search="规则列表 rules get 域名路由 domains 智能分流">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/rules</span><h3>读取规则列表</h3></div>
+      <div class="endpoint-body">
+        <p>返回已持久化的全部 host → backend 路由。所有规则共用 <code>settings.listen</code>，数组顺序就是匹配顺序。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>{"ok":true,"data":[{"id":"play","name":"主服","host":["play.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"round-robin","proxy_protocol":"off","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"play.example.com","minecraft_protocol":769},"modify_virtual_host":false,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§a欢迎来到主服","version_name":null,"protocol":null,"online":null,"max":null,"fallback":null},"whitelist_enabled":true,"whitelist":["Alice","Bob"],"whitelist_message":"§c你不在此服务器的白名单中。","enabled":true}]}</pre>
+        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="rules-post" data-search="新建规则 rules post host backend 域名 通配符 单端口 健康检查 health threshold tcp minecraft status ping pong">
+      <div class="endpoint-head"><span class="method post">POST</span><span class="path">/api/v1/rules</span><h3>新建转发规则</h3></div>
+      <div class="endpoint-body">
+        <p>新增一条 host → backend 路由并原子持久化。代理读取 Minecraft Java 首个握手包，按规则数组顺序使用第一个匹配项；新规则会自动插入已启用的 <code>*</code> 兜底规则之前。</p>
+        <div class="label">请求体参数</div>
+        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
+          <tr><td><code>id</code></td><td>字符串</td><td>1 到 32 位字母、数字、短横线或下划线，必须唯一。</td></tr>
+          <tr><td><code>name</code></td><td>字符串</td><td>1 到 64 个字符。</td></tr>
+          <tr><td><code>host</code></td><td>字符串数组</td><td>一个或多个握手域名；支持 <code>*</code>、<code>?</code> 通配，不区分大小写。JSON 使用数组。</td></tr>
+          <tr><td><code>backend</code></td><td>字符串数组</td><td>1 到 128 个 <code>主机:端口</code>；TOML 兼容旧版单字符串，JSON API 返回并接收数组。</td></tr>
+          <tr><td><code>strategy</code></td><td>枚举</td><td><code>sequential</code>、<code>random</code>、<code>round-robin</code>、<code>least-connections</code> 或 <code>lowest-latency</code>。</td></tr>
+          <tr><td><code>proxy_protocol</code></td><td>枚举</td><td><code>off</code>、<code>v1</code> 或 <code>v2</code>，默认 <code>off</code>。启用后在 Minecraft 数据前发送连接地址头；后端必须明确支持同一版本，且后端端口应只信任代理来源。TOML 兼容 Gate 风格布尔值：<code>true</code> 等价于 v1。</td></tr>
+          <tr><td><code>health_check</code></td><td>对象</td><td>主动健康检查。<code>mode</code> 为 <code>tcp</code> 或 <code>minecraft-status</code>；后者完成 Java Handshake、Status JSON 与 Ping/Pong 校验。还包含 <code>enabled</code>、1–86400 秒的 <code>interval_secs</code>、100–60000 毫秒且不大于间隔的整次 <code>timeout_ms</code>，以及 1–100 的 <code>unhealthy_threshold</code>/<code>healthy_threshold</code>。默认关闭；全局最多并发 64 个。</td></tr>
+          <tr><td><code>health_check.minecraft_host</code></td><td>字符串或 null</td><td>Status 探测握手 Host，1–255 字节，不能包含通配符、空白或 NUL。null 时优先使用精确路由 Host；通配路由或启用 Host 改写时使用当前后端主机名。</td></tr>
+          <tr><td><code>health_check.minecraft_protocol</code></td><td>整数</td><td>Status 探测握手协议号，范围 0 到 2147483647，默认 769。探测会接受服务端返回的版本不匹配状态，但要求响应包含基础 <code>version</code>、<code>players</code> 与 <code>description</code>。</td></tr>
+          <tr><td><code>modify_virtual_host</code></td><td>布尔</td><td>是否把转发给后端的 Minecraft 握手 Host 改为 backend 的主机名；后端要求固定域名时启用。</td></tr>
+          <tr><td><code>status</code></td><td>对象或 null</td><td>存在时由代理管理服务器列表响应。<code>mode</code> 为 <code>custom</code> 时完全生成响应；为 <code>backend</code> 时读取后端 JSON，并保留 <code>forgeData</code>、<code>modinfo</code>、favicon、玩家 sample 和其他未知字段。</td></tr>
+          <tr><td><code>status.cache_ttl_secs</code></td><td>整数</td><td>-1 到 86400；后端模式按 backend 与客户端协议号缓存，-1 或 0 不复用缓存。</td></tr>
+          <tr><td><code>status.motd</code> 等覆盖字段</td><td>可空</td><td><code>motd</code>、<code>version_name</code>、<code>protocol</code>、<code>online</code>、<code>max</code>。后端模式中只有非 null 字段会覆盖后端原值。</td></tr>
+          <tr><td><code>status.fallback</code></td><td>对象或 null</td><td>仅后端模式使用；连接、超时或 JSON 解析失败时返回离线状态。字段与上述覆盖字段相同。</td></tr>
+          <tr><td><code>whitelist_enabled</code></td><td>布尔</td><td>是否在 Login Start 阶段执行代理白名单。</td></tr>
+          <tr><td><code>whitelist</code></td><td>字符串数组</td><td>最多 10000 个玩家名，不区分大小写；玩家名为 1 到 16 位字母、数字或下划线。</td></tr>
+          <tr><td><code>whitelist_message</code></td><td>字符串</td><td>非白名单玩家收到的 Login Disconnect 文本组件或 § 格式消息，1 到 1024 个字符。</td></tr>
+          <tr><td><code>enabled</code></td><td>布尔</td><td>是否纳入当前入口的路由表。</td></tr>
+        </tbody></table>
+        <div class="label">请求示例</div><pre>{"id":"mod","name":"模组服","host":["mod.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"least-connections","proxy_protocol":"v2","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"mod.example.com","minecraft_protocol":769},"modify_virtual_host":true,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§b模组服在线","version_name":null,"protocol":null,"online":null,"max":null,"fallback":{"motd":"§c后端暂时离线","version_name":"维护中","protocol":-1,"online":0,"max":100}},"whitelist_enabled":false,"whitelist":[],"whitelist_message":"§c你不在此服务器的白名单中。","enabled":true}</pre>
+        <div class="label">成功响应</div><p><code>201</code>，data 为创建后的规则。</p>
+        <div class="label">错误码</div><p><code>400</code>：ID/host 重复、参数非法、入口重载失败或持久化失败。<code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="rules-put" data-search="修改规则 rules put id 启用 停用 域名路由">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/rules/{id}</span><h3>修改或启停规则</h3></div>
+      <div class="endpoint-body">
+        <p>完整替换指定 host 路由。路径 ID 为权威值，请求体中的 ID 会被路径值覆盖。修改 host、backend、健康检查、PROXY Protocol、MOTD、白名单、握手 Host 改写或启用状态会重载单入口路由表。</p>
+        <div class="label">路径参数</div><table><tbody><tr><td><code>id</code></td><td>规则唯一 ID。</td></tr></tbody></table>
+        <div class="label">请求体</div><p>与新建规则相同。</p>
+        <div class="label">成功响应</div><p><code>200</code>，data 为更新后的规则。</p>
+        <div class="label">错误码</div><p><code>400</code>：规则不存在、参数非法、端口绑定失败或持久化失败。<code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="rules-delete" data-search="删除规则 delete">
+      <div class="endpoint-head"><span class="method delete">DELETE</span><span class="path">/api/v1/rules/{id}</span><h3>删除转发规则</h3></div>
+      <div class="endpoint-body">
+        <p>优雅停止并删除指定规则。为避免空配置，系统必须至少保留一条规则；可保留一条停用规则。</p>
+        <div class="label">路径参数</div><table><tbody><tr><td><code>id</code></td><td>规则唯一 ID。</td></tr></tbody></table>
+        <div class="label">成功响应</div><pre>{"ok":true,"data":{"deleted":"backup"}}</pre>
+        <div class="label">错误码</div><p><code>400</code>：规则不存在或删除后无任何规则。<code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section id="errors" data-search="错误码 400 401 404 500">
+      <h2>统一错误结构</h2>
+      <pre>{"ok":false,"error":{"code":400,"message":"具体错误说明"}}</pre>
+      <table><thead><tr><th>状态码</th><th>含义</th></tr></thead><tbody>
+        <tr><td><code>400</code></td><td>业务参数或运行时应用失败。</td></tr>
+        <tr><td><code>401</code></td><td>Bearer 管理令牌无效或缺失。</td></tr>
+        <tr><td><code>404</code></td><td>请求路径不存在。</td></tr>
+        <tr><td><code>413</code></td><td>请求体超过 Axum 默认限制。</td></tr>
+        <tr><td><code>500</code></td><td>未预期的服务端错误。</td></tr>
+        <tr><td><code>502</code></td><td>Nginx 无法连接回环管理端。</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</div>
+<script>
+  const input=document.getElementById("search");
+  const items=[...document.querySelectorAll("[data-search]")];
+  const links=[...document.querySelectorAll("#toc a")];
+  input.addEventListener("input",()=>{
+    const query=input.value.trim().toLowerCase();
+    items.forEach(item=>item.classList.toggle("hidden",query&&!`${item.dataset.search} ${item.textContent}`.toLowerCase().includes(query)));
+    links.forEach(link=>{const target=document.querySelector(link.getAttribute("href"));link.classList.toggle("hidden",Boolean(query&&target?.classList.contains("hidden")))});
+  });
+</script>
+</body>
+</html>

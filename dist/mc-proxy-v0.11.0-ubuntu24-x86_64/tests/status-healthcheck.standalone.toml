@@ -1,0 +1,30 @@
+[admin]
+listen = "127.0.0.1:28081"
+
+[settings]
+listen = "127.0.0.1:26566"
+proxy_enabled = true
+socket_buffer_bytes = 0
+stats_interval_secs = 60
+
+[[rules]]
+id = "status-health-fixture"
+name = "Minecraft Status 健康检查验收"
+host = "health.fixture.local"
+backend = ["127.0.0.1:29996", "127.0.0.1:29997"]
+strategy = "sequential"
+proxy_protocol = "off"
+modify_virtual_host = false
+whitelist_enabled = false
+whitelist = []
+enabled = true
+
+[rules.health_check]
+enabled = true
+mode = "minecraft-status"
+interval_secs = 1
+timeout_ms = 500
+unhealthy_threshold = 1
+healthy_threshold = 1
+minecraft_host = "health.fixture.local"
+minecraft_protocol = 769

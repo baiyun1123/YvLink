@@ -1,0 +1,45 @@
+[Unit]
+Description=Minecraft Java TCP Proxy and Admin
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mc-proxy
+Group=mc-proxy
+WorkingDirectory=/opt/mc-proxy
+EnvironmentFile=/etc/mc-proxy/admin.env
+Environment=RUST_LOG=mc_proxy=info
+ExecStart=/opt/mc-proxy/mc-proxy --config /etc/mc-proxy/config.toml
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=45
+LimitNOFILE=200000
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RemoveIPC=true
+ReadWritePaths=/etc/mc-proxy
+
+[Install]
+WantedBy=multi-user.target
