@@ -25,8 +25,10 @@
 - README、API 文档和设计系统主文档中已无 `MC Relay` 品牌残留。
 - 最终架构图确认为有效的 1672×941、8-bit RGB PNG，图片中文字为“YvLink / 智能代理”。
 - `cargo fmt --check`、Cargo 元数据解析和 `node --check web/app.js` 通过。
-- 本机未安装 PyYAML、Ruby YAML 或 Perl YAML 模块，因此工作流语法将在推送后由 GitHub Actions 进行最终解析和运行验证。
-- GitHub Pages 当前尚未启用；工作流推送后需将仓库 Pages 构建源设置为 GitHub Actions。
+- 本机未安装 PyYAML、Ruby YAML 或 Perl YAML 模块；推送后两个工作流均已被 GitHub Actions 正确解析。
+- GitHub Pages 已通过 API 启用 `workflow` 发布源，Pages 构建与部署成功；在线地址返回 HTTP 200，页面标题和主标题均为 YvLink。
+- Ubuntu 22.04 与 Windows Server 2022 的 Rust 1.85 锁定依赖测试、release 编译、压缩和 artifact 上传全部成功。
+- Ubuntu 24.04 首次运行在格式步骤失败，日志确认原因是 `--profile minimal` 未安装 `rustfmt`，不是源码格式错误；工作流已显式增加 Rust 1.85 的 `rustfmt` 组件。
 
 ## 关键决策
 
@@ -37,7 +39,7 @@
 
 ## 风险与待办
 
-- 推送后需要检查两个工作流的首次运行结果；若 Pages 尚未启用，需通过仓库设置或 GitHub API 将构建来源切换为 GitHub Actions。
+- 需要检查加入 `rustfmt` 组件后的 Ubuntu 24.04 重跑结果，确保三个平台最终全部为成功。
 - Windows 包仅能在 GitHub Windows runner 完成真实编译验证，本机 Android/Termux 无法替代该环境。
 - Actions 构建产物默认保留 14 天；若需要永久下载，应在后续版本标签流程中自动创建 GitHub Release 并上传产物。
 - 历史 `dist/` 发布包保留其当时的文档和二进制内容，没有回写旧版本品牌。
