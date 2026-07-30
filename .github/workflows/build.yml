@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing tag to publish as a GitHub Release, for example v0.11.0
+        description: Existing tag to publish as a GitHub Release, for example v0.12.0
         required: false
         type: string
 
@@ -73,7 +73,7 @@ jobs:
           set -euo pipefail
           mkdir -p package
           cp target/release/mc-proxy package/
-          cp README.md config.example.toml package/
+          cp README.md config.example.toml LICENSE NOTICE package/
           cp MODDED_COMPATIBILITY.md CROSSPLAY.md package/
           tar -czf "${{ matrix.archive }}" -C package .
 
@@ -83,7 +83,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path package
           Copy-Item target/release/mc-proxy.exe package/
-          Copy-Item README.md, config.example.toml, MODDED_COMPATIBILITY.md, CROSSPLAY.md package/
+          Copy-Item README.md, config.example.toml, LICENSE, NOTICE, MODDED_COMPATIBILITY.md, CROSSPLAY.md package/
           Compress-Archive -Path package/* -DestinationPath "${{ matrix.archive }}"
 
       - name: Upload release package
@@ -136,7 +136,7 @@ jobs:
           set -euo pipefail
           mkdir -p package
           cp "target/${{ matrix.target }}/release/mc-proxy" package/
-          cp README.md config.example.toml package/
+          cp README.md config.example.toml LICENSE NOTICE package/
           cp MODDED_COMPATIBILITY.md CROSSPLAY.md package/
           file package/mc-proxy
           tar -czf "${{ matrix.archive }}" -C package .

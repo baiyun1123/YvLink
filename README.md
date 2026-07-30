@@ -28,7 +28,7 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 
 项目同时提供内置 Web 管理控制台，可在线管理路由、后端池、状态响应、白名单、健康检查和跨平台互通配置，无需手工修改 TOML 后重启服务。
 
-当前版本：**v0.11.0**
+当前开发版本：**v0.12.0**
 
 ## 下载
 
@@ -352,7 +352,14 @@ curl -fsS http://127.0.0.1:18080/healthz
 
 ## 许可证
 
-项目在 `Cargo.toml` 中声明使用 MIT License。
+YvLink 从 v0.12.0 起使用 [GNU Affero General Public License v3.0 only](LICENSE)（`AGPL-3.0-only`）。
+
+- 允许个人和企业使用、修改、分发及商业化。
+- 分发修改版本时，必须按照 AGPL v3 提供对应源代码并保留许可证声明。
+- 如果修改后的版本通过网络与用户交互，必须向这些用户免费提供该版本的对应源代码。
+- `YvLink` 项目名称和图标不因本软件许可证而授予商标使用权。
+
+已经发布的 v0.11.0 及更早版本仍适用其发布时的 MIT License；既有授权不会被追溯撤销。
 
 ---
 
@@ -366,7 +373,7 @@ YvLink (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwa
 
 An embedded web control panel lets operators manage routes, backend pools, status responses, allowlists, health checks, and crossplay settings without manually editing TOML and restarting the service.
 
-Current version: **v0.11.0**
+Current development version: **v0.12.0**
 
 ## Downloads
 
@@ -690,4 +697,11 @@ Tune 16, 32, 64, and 128 KiB buffers using real Minecraft protocol clients. Do n
 
 ## License
 
-The package declares the MIT License in `Cargo.toml`.
+YvLink is licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`) starting with v0.12.0.
+
+- Personal, corporate, modified, redistributed, and commercial use is permitted.
+- Modified distributions must provide the corresponding source and preserve the license notices as required by AGPL v3.
+- If a modified version interacts with users over a network, those users must be offered its corresponding source at no charge.
+- This software license does not grant permission to use the `YvLink` project name or logo as a trademark.
+
+Released versions v0.11.0 and earlier remain available under the MIT License under which they were published; existing grants are not retroactively revoked.

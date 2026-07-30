@@ -2,6 +2,52 @@
 
 ## 任务标题
 
+将 YvLink 后续版本许可证切换为 AGPL-3.0-only 并纳入跨平台发布包。
+
+## 完成时间
+
+2026-07-30 14:24（Asia/Shanghai）
+
+## 变更内容
+
+- 新增 GNU Affero General Public License v3.0 only 完整许可证正文 `LICENSE`。
+- 新增 `NOTICE`，注明项目名称 YvLink、版权所有者、许可证生效版本及商标边界。
+- 将 Cargo 包版本从 v0.11.0 提升到 v0.12.0，并把许可证元数据由 MIT 改为 SPDX 标识 `AGPL-3.0-only`，避免同一版本对应两套许可证。
+- README 中英文同步说明：允许个人、企业和商业使用；分发修改版本或通过网络提供修改版本时，需要按照 AGPL v3 提供对应源代码。
+- README 中英文明确记录 v0.11.0 及更早已发布版本仍按原 MIT License 授权，既有授权不能追溯撤销。
+- GitHub Actions 的 Ubuntu、Windows 和 musl Linux 打包步骤全部加入 `LICENSE`，确保后续二进制发布包携带完整许可证。
+- 所有发布包同时加入 `NOTICE`，让二进制分发保留 YvLink 项目名称、版权、生效版本和历史授权说明。
+- 无新增或变更后端 HTTP API，`docs/api.html` 无需修改；无数据库结构变更，无需 SQL。
+
+## 关键决策
+
+- 采用标准 `AGPL-3.0-only`，不附加日活、收入或禁止商业化等额外限制，以维持标准开源许可证属性并适配 Codex for Open Source 申请方向。
+- 许可证允许商业化，但修改版本对外分发或通过网络向用户提供服务时，需要履行 AGPL 的对应源代码义务。
+- 项目名称与图标的商标边界写入独立 `NOTICE`，不修改 GNU 官方许可证正文。
+- 许可证变更从 v0.12.0 向后生效；已按 MIT 发布的历史版本保持原授权。
+
+## 风险与待办
+
+- v0.12.0 尚未创建 Git 标签或正式 GitHub Release；本次推送只建立后续开发版本及许可证基线。
+- AGPL 合规结论取决于具体分发、修改和网络服务方式，商业部署方应结合自身场景审查许可证义务。
+- 若未来接受外部贡献，建议增加贡献者协议或 Developer Certificate of Origin 流程，明确贡献代码可按项目许可证发布。
+- 标准许可证正文已与 SPDX `AGPL-3.0-only` 文本逐字比对；`git diff --check` 通过。
+- 本机 Termux 的 Rust 标准库缺少 rlib，`cargo check` 在依赖构建阶段失败；这不是本次文档或元数据变更导致的源码错误，推送后需以 GitHub Actions 的 Ubuntu/Windows 锁定依赖构建为最终验证。
+
+## 关联文件
+
+- `LICENSE`
+- `NOTICE`
+- `Cargo.toml`
+- `Cargo.lock`
+- `README.md`
+- `.github/workflows/build.yml`
+- `code.md`
+
+---
+
+## 任务标题
+
 补充便携 Linux 构建并将版本标签自动发布为带安装包的 GitHub Release。
 
 ## 完成时间
