@@ -32,7 +32,8 @@
 - AGPL 合规结论取决于具体分发、修改和网络服务方式，商业部署方应结合自身场景审查许可证义务。
 - 若未来接受外部贡献，建议增加贡献者协议或 Developer Certificate of Origin 流程，明确贡献代码可按项目许可证发布。
 - 标准许可证正文已与 SPDX `AGPL-3.0-only` 文本逐字比对；`git diff --check` 通过。
-- 本机 Termux 的 Rust 标准库缺少 rlib，`cargo check` 在依赖构建阶段失败；这不是本次文档或元数据变更导致的源码错误，推送后需以 GitHub Actions 的 Ubuntu/Windows 锁定依赖构建为最终验证。
+- 本机 Termux 的 Rust 标准库缺少 rlib，`cargo check` 在依赖构建阶段失败；这不是本次文档或元数据变更导致的源码错误。
+- GitHub Actions 运行 `30519686172` 最终成功：Ubuntu 22.04、Ubuntu 24.04、Windows Server 2022、musl x86_64 和 musl ARM64 的测试、release 编译、携带许可证的打包及 artifact 上传全部通过。
 
 ## 关联文件
 
