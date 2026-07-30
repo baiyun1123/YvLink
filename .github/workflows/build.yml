@@ -8,6 +8,11 @@ on:
       - "v*"
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing tag to publish as a GitHub Release, for example v0.11.0
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -39,7 +44,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust 1.85
         shell: bash
@@ -82,9 +87,98 @@ jobs:
           Compress-Archive -Path package/* -DestinationPath "${{ matrix.archive }}"
 
       - name: Upload release package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.archive }}
           if-no-files-found: error
           retention-days: 14
+
+  portable-linux:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Portable Linux x86_64 musl
+            target: x86_64-unknown-linux-musl
+            artifact: YvLink-linux-musl-x86_64
+            archive: YvLink-linux-musl-x86_64.tar.gz
+          - name: Portable Linux ARM64 musl
+            target: aarch64-unknown-linux-musl
+            artifact: YvLink-linux-musl-aarch64
+            archive: YvLink-linux-musl-aarch64.tar.gz
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust 1.85
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.85.0 --profile minimal
+          rustup target add "${{ matrix.target }}" --toolchain 1.85.0
+          rustup override set 1.85.0
+
+      - name: Install cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build portable Linux binary
+        run: cross build --locked --release --target "${{ matrix.target }}"
+
+      - name: Package portable Linux release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package
+          cp "target/${{ matrix.target }}/release/mc-proxy" package/
+          cp README.md config.example.toml package/
+          cp MODDED_COMPATIBILITY.md CROSSPLAY.md package/
+          file package/mc-proxy
+          tar -czf "${{ matrix.archive }}" -C package .
+
+      - name: Upload portable Linux package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.archive }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
+    needs:
+      - build
+      - portable-linux
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+
+    steps:
+      - name: Download all release packages
+        uses: actions/download-artifact@v7
+        with:
+          path: release-assets
+
+      - name: Create or update GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "YvLink $RELEASE_TAG" \
+              --notes "YvLink multi-platform release packages. See README.md for configuration and startup instructions."
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/*/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

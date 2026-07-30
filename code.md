@@ -2,6 +2,49 @@
 
 ## 任务标题
 
+补充便携 Linux 构建并将版本标签自动发布为带安装包的 GitHub Release。
+
+## 完成时间
+
+2026-07-30 13:11（Asia/Shanghai）
+
+## 变更内容
+
+- 修正“只推送 Git tag”的交付问题：Git tag 仅提供源码快照，不能替代带平台安装包的 GitHub Release。
+- 构建矩阵新增 `x86_64-unknown-linux-musl` 便携 Linux 包，适用于 Alpine 和多数 x86_64 Linux 发行版。
+- 构建矩阵新增 `aarch64-unknown-linux-musl` ARM64 便携 Linux 包，适用于 ARM64 服务器和树莓派 64 位系统。
+- 保留 Ubuntu 22.04 x86_64、Ubuntu 24.04 x86_64 和 Windows Server 2022 x86_64 原生构建，共生成五个平台包。
+- 使用 `cross` 与受校验的 `taiki-e/install-action` 完成交叉编译，避免把 Ubuntu runner 名称误当成全部 Linux 支持范围。
+- 工作流新增可选 `release_tag` 手动输入；版本标签触发或手动指定已有标签时，等待全部五个构建成功后创建/更新 GitHub Release。
+- Release 发布任务使用 GitHub CLI 校验远端标签、创建正式 Release，并把五个平台归档上传为 Release Assets。
+- 将 `actions/checkout` 升级到 Node 24 运行时的 v6，将 artifact 上传/下载升级到 v7，消除旧版 Node 20 弃用警告。
+- README 中英文新增下载章节，明确安装包从 GitHub Releases 获取，GitHub 自动生成的 `Source code (zip)` 不是安装包。
+- 无新增或变更后端 HTTP API，`docs/api.html` 无需修改；无数据库结构变更，无需 SQL。
+
+## 关键决策
+
+- 不为 Debian、CentOS、Arch 等发行版复制相同的动态链接构建，而是提供 musl 便携包覆盖发行版差异，并按 x86_64/ARM64 区分 CPU 架构。
+- Windows 使用 `.zip` 是平台归档格式；Linux 使用 `.tar.gz`，避免把 Actions 下载接口的外层 ZIP 当成用户安装包。
+- Release 任务仅在所有原生和便携构建成功后执行，防止发布缺少平台文件的不完整版本。
+- 对现有 `v0.11.0` 使用手动工作流输入创建 Release，不强制移动已经推送的 Git 标签。
+
+## 风险与待办
+
+- musl 两个目标需要 GitHub runner 的 Docker 与 cross 镜像；首次运行必须实际验证下载、链接和打包。
+- ARM64 包通过交叉编译生成，本轮以编译和二进制产物为验收，不在 x86_64 runner 上模拟完整运行。
+- Release Assets 上传使用 `--clobber` 仅覆盖同名构建产物；正式发布后不应手工上传同名不同内容文件。
+
+## 关联文件
+
+- `.github/workflows/build.yml`
+- `.github/workflows/pages.yml`
+- `README.md`
+- `code.md`
+
+---
+
+## 任务标题
+
 将文档品牌更正为 YvLink，并新增 GitHub Pages 与多平台构建工作流。
 
 ## 完成时间

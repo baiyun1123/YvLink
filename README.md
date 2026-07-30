@@ -30,6 +30,18 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 
 当前版本：**v0.11.0**
 
+## 下载
+
+正式安装包请从 [GitHub Releases](https://github.com/baiyun1123/YvLink/releases/latest) 下载，不要使用 GitHub 自动生成的 `Source code (zip)` 作为安装包。
+
+| 文件 | 适用环境 |
+| --- | --- |
+| `YvLink-ubuntu-22.04-x86_64.tar.gz` | Ubuntu 22.04 或兼容的 x86_64 glibc Linux |
+| `YvLink-ubuntu-24.04-x86_64.tar.gz` | Ubuntu 24.04 或更新的 x86_64 glibc Linux |
+| `YvLink-linux-musl-x86_64.tar.gz` | Alpine 及多数 x86_64 Linux 发行版的便携版本 |
+| `YvLink-linux-musl-aarch64.tar.gz` | ARM64 Linux、ARM 服务器和树莓派 64 位系统 |
+| `YvLink-windows-2022-x86_64.zip` | 64 位 Windows |
+
 ## 主要功能
 
 - 单端口多域名路由，支持精确 Host、`*`/`?` 通配符和默认兜底规则。
@@ -355,6 +367,18 @@ YvLink (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwa
 An embedded web control panel lets operators manage routes, backend pools, status responses, allowlists, health checks, and crossplay settings without manually editing TOML and restarting the service.
 
 Current version: **v0.11.0**
+
+## Downloads
+
+Download installable packages from [GitHub Releases](https://github.com/baiyun1123/YvLink/releases/latest). GitHub’s automatically generated `Source code (zip)` archive is not an installation package.
+
+| File | Platform |
+| --- | --- |
+| `YvLink-ubuntu-22.04-x86_64.tar.gz` | Ubuntu 22.04 or compatible x86_64 glibc Linux |
+| `YvLink-ubuntu-24.04-x86_64.tar.gz` | Ubuntu 24.04 or newer x86_64 glibc Linux |
+| `YvLink-linux-musl-x86_64.tar.gz` | Portable x86_64 build for Alpine and most Linux distributions |
+| `YvLink-linux-musl-aarch64.tar.gz` | ARM64 Linux, ARM servers, and 64-bit Raspberry Pi systems |
+| `YvLink-windows-2022-x86_64.zip` | 64-bit Windows |
 
 ## Features
 
