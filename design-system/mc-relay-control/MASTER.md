@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** MC Relay Control
+**Project:** YvLink Control
 **Generated:** 2026-07-30 00:23:29
 **Category:** Smart Home/IoT Dashboard
 **Design Dials:** Variance 6/10 (Balanced / Modern) | Motion 3/10 (Subtle) | Density 8/10 (Dense / Dashboard)

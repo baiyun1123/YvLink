@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="assets/icon.png" width="144" height="144" alt="MC Relay project icon / MC Relay 项目图标">
-  <h1>MC Relay · mc-proxy</h1>
+  <img src="assets/icon.png" width="144" height="144" alt="YvLink project icon / YvLink 项目图标">
+  <h1>YvLink · mc-proxy</h1>
   <p>
     Minecraft Java 协议感知转发器与 Web 管理控制台<br>
     Protocol-aware Minecraft Java proxy with a web control panel
@@ -8,13 +8,13 @@
   <p>
     <a href="#中文">中文</a> ·
     <a href="#english">English</a> ·
-    <a href="docs/api.html">API Docs</a> ·
+    <a href="https://baiyun1123.github.io/YvLink/">API Docs</a> ·
     <a href="MODDED_COMPATIBILITY.md">Modded Compatibility</a> ·
     <a href="CROSSPLAY.md">Crossplay</a>
   </p>
 </div>
 
-![MC Relay bilingual architecture: players connect through the proxy to multiple backends, managed by a web control panel / MC Relay 双语架构：玩家经智能代理连接多个后端，并由 Web 控制台管理](assets/readme-architecture-bilingual.png)
+![YvLink bilingual architecture: players connect through the proxy to multiple backends, managed by a web control panel / YvLink 双语架构：玩家经智能代理连接多个后端，并由 Web 控制台管理](assets/readme-architecture-bilingual.png)
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## 项目简介
 
-MC Relay（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高性能 Minecraft Java TCP 转发器。它会解析连接初期的 Handshake、Status 和 Login Start，根据客户端访问的域名选择后端，并在选路完成后透明转发后续游戏与模组协议。
+YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高性能 Minecraft Java TCP 转发器。它会解析连接初期的 Handshake、Status 和 Login Start，根据客户端访问的域名选择后端，并在选路完成后透明转发后续游戏与模组协议。
 
 项目同时提供内置 Web 管理控制台，可在线管理路由、后端池、状态响应、白名单、健康检查和跨平台互通配置，无需手工修改 TOML 后重启服务。
 
@@ -51,7 +51,7 @@ MC Relay（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高
 Java 客户端
     │  TCP :25565（Handshake 中携带访问域名）
     ▼
-MC Relay
+YvLink
     ├─ 按规则顺序匹配 Host
     ├─ 按策略选择健康后端
     ├─ 可处理 Status / 白名单
@@ -255,6 +255,7 @@ max = 100
 - [`deploy/nginx-mc.lic6.top.conf`](deploy/nginx-mc.lic6.top.conf)：Nginx 反向代理示例。
 - [`deploy/nginx-rate-limit.conf`](deploy/nginx-rate-limit.conf)：API 限速示例。
 - [`docs/api.html`](docs/api.html)：响应式、可搜索的 API 文档。
+- <https://baiyun1123.github.io/YvLink/>：由 GitHub Actions 自动部署的在线 API 文档。
 
 公开演示管理地址：<https://mc.lic6.top>
 
@@ -323,7 +324,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 - 白名单只是后端认证前的快速筛选，不能代替 Minecraft 在线模式身份认证。
 - PROXY Protocol 只传递源/目标地址，不转换 Java 协议版本，也不代替 Velocity/Bungee 转发协议。
 - Minecraft Status 健康检查只证明列表协议可用，不代表玩家可以完成认证、模组协商或进入游戏。
-- Bedrock 客户端需要外部 Geyser Standalone；MC Relay 本身不实现 UDP → Java 协议翻译。
+- Bedrock 客户端需要外部 Geyser Standalone；YvLink 本身不实现 UDP → Java 协议翻译。
 
 详细说明：
 
@@ -349,7 +350,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 
 ## Overview
 
-MC Relay (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwarding proxy built with Rust and Tokio. It parses the initial Handshake, Status, and Login Start packets, selects a backend using the hostname requested by the client, and transparently relays subsequent game and mod-loader traffic.
+YvLink (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwarding proxy built with Rust and Tokio. It parses the initial Handshake, Status, and Login Start packets, selects a backend using the hostname requested by the client, and transparently relays subsequent game and mod-loader traffic.
 
 An embedded web control panel lets operators manage routes, backend pools, status responses, allowlists, health checks, and crossplay settings without manually editing TOML and restarting the service.
 
@@ -376,7 +377,7 @@ Current version: **v0.11.0**
 Java clients
     │  TCP :25565 (requested hostname in Handshake)
     ▼
-MC Relay
+YvLink
     ├─ matches Host rules in order
     ├─ selects a healthy backend
     ├─ optionally handles Status / allowlist
@@ -388,7 +389,7 @@ MC Relay
 Browser ── HTTP :18080 / HTTPS reverse proxy ── Web UI and management API
 ```
 
-Multiple domains can share the same listener. MC Relay reads the virtual host from the Minecraft Handshake, uses the first matching rule, and selects a node from that rule’s backend pool. If the preferred node cannot be reached, the remaining nodes are tried automatically.
+Multiple domains can share the same listener. YvLink reads the virtual host from the Minecraft Handshake, uses the first matching rule, and selects a node from that rule’s backend pool. If the preferred node cannot be reached, the remaining nodes are tried automatically.
 
 ## Requirements
 
@@ -580,6 +581,7 @@ Use Nginx to expose the control panel over HTTPS in production. Do not bind the 
 - [`deploy/nginx-mc.lic6.top.conf`](deploy/nginx-mc.lic6.top.conf): Nginx reverse-proxy example.
 - [`deploy/nginx-rate-limit.conf`](deploy/nginx-rate-limit.conf): API rate-limit example.
 - [`docs/api.html`](docs/api.html): responsive, searchable API documentation.
+- <https://baiyun1123.github.io/YvLink/>: online API documentation deployed automatically by GitHub Actions.
 
 Public management demo: <https://mc.lic6.top>
 
@@ -648,7 +650,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 - The allowlist is only an early filter before backend authentication; it is not a substitute for Minecraft online-mode identity verification.
 - PROXY Protocol only carries source/destination addresses. It does not translate Java protocol versions or replace Velocity/Bungee forwarding.
 - A Minecraft Status health check proves only that the server-list protocol works. It does not prove successful authentication, mod negotiation, or gameplay.
-- Bedrock clients require an external Geyser Standalone instance; MC Relay itself does not translate UDP Bedrock traffic into Java protocol traffic.
+- Bedrock clients require an external Geyser Standalone instance; YvLink itself does not translate UDP Bedrock traffic into Java protocol traffic.
 
 Further reading:
 

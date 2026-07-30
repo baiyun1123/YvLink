@@ -2,6 +2,60 @@
 
 ## 任务标题
 
+将文档品牌更正为 YvLink，并新增 GitHub Pages 与多平台构建工作流。
+
+## 完成时间
+
+2026-07-30 12:56（Asia/Shanghai）
+
+## 变更内容
+
+- 将中英双语 `README.md` 中错误的展示品牌 `MC Relay` 全部更正为 `YvLink`，保留二进制、Cargo 包和 systemd 技术标识 `mc-proxy`。
+- 使用内置图片编辑能力将 README 双语架构图中央标签精确改为“YvLink / 智能代理”，保持玩家、后端、控制台、布局和配色不变。
+- 将 `docs/api.html` 的浏览器标题和页面品牌更正为 YvLink，并同步设计系统文档的项目名。
+- 新增 `.github/workflows/pages.yml`：在 `main` 的 API 文档或图标变更时，把 `docs/api.html` 同时发布为 GitHub Pages 的 `/` 与 `/api.html`。
+- Pages 工作流使用最小权限 `contents: read`、`pages: write`、`id-token: write`，并通过 `github-pages` environment 部署。
+- 新增 `.github/workflows/build.yml`：在 push、PR、版本标签和手动触发时并行构建 Ubuntu 22.04 x86_64、Ubuntu 24.04 x86_64 与 Windows Server 2022 x86_64。
+- 三个平台均安装 Rust 1.85.0，执行锁定依赖测试与 release 构建；Linux 输出 `.tar.gz`，Windows 输出 `.zip`，Actions 构建产物保留 14 天。
+- README 中英文部分均增加在线 API 文档地址 `https://baiyun1123.github.io/YvLink/`。
+- 无新增或变更后端 HTTP API，只变更现有 API 文档的品牌与部署方式；无数据库结构变更，无需 SQL。
+
+## 验证结果
+
+- README、API 文档和设计系统主文档中已无 `MC Relay` 品牌残留。
+- 最终架构图确认为有效的 1672×941、8-bit RGB PNG，图片中文字为“YvLink / 智能代理”。
+- `cargo fmt --check`、Cargo 元数据解析和 `node --check web/app.js` 通过。
+- 本机未安装 PyYAML、Ruby YAML 或 Perl YAML 模块，因此工作流语法将在推送后由 GitHub Actions 进行最终解析和运行验证。
+- GitHub Pages 当前尚未启用；工作流推送后需将仓库 Pages 构建源设置为 GitHub Actions。
+
+## 关键决策
+
+- 品牌名与技术标识分离：用户可见名称使用 YvLink，现有可执行文件、配置路径、环境变量和服务名继续使用 `mc-proxy`，避免破坏部署兼容性。
+- API 文档不复制维护第二份源码；Pages 构建阶段将同一个 `docs/api.html` 复制为站点首页和 `/api.html`，防止内容漂移。
+- 采用 GitHub 官方 Pages Actions 和构建产物 Actions；构建矩阵使用 GitHub 托管 runner，不需要仓库密钥。
+- 首轮跨平台范围选择两个常用 Ubuntu LTS runner 与 Windows Server 2022；不加入未经交叉编译验证的 ARM 或 musl 目标。
+
+## 风险与待办
+
+- 推送后需要检查两个工作流的首次运行结果；若 Pages 尚未启用，需通过仓库设置或 GitHub API 将构建来源切换为 GitHub Actions。
+- Windows 包仅能在 GitHub Windows runner 完成真实编译验证，本机 Android/Termux 无法替代该环境。
+- Actions 构建产物默认保留 14 天；若需要永久下载，应在后续版本标签流程中自动创建 GitHub Release 并上传产物。
+- 历史 `dist/` 发布包保留其当时的文档和二进制内容，没有回写旧版本品牌。
+
+## 关联文件
+
+- `.github/workflows/pages.yml`
+- `.github/workflows/build.yml`
+- `README.md`
+- `docs/api.html`
+- `design-system/mc-relay-control/MASTER.md`
+- `assets/readme-architecture-bilingual.png`
+- `code.md`
+
+---
+
+## 任务标题
+
 重写中英双语 README，并生成匹配项目图标风格的双语架构配图。
 
 ## 完成时间
@@ -16,7 +70,7 @@
 - 启动说明同时覆盖 release 二进制与 `cargo run`，明确 `MC_PROXY_ADMIN_TOKEN` 至少 32 个字符，并给出安全随机令牌生成方法。
 - 生产说明关联仓库现有 Nginx、API 文档、systemd、Ubuntu 24.04、Geyser 和真实模组矩阵资料，没有虚构新的部署文件或能力。
 - 使用内置图片生成能力，以现有项目图标为视觉参考生成 1672×941 的中英双语架构图 `assets/readme-architecture-bilingual.png`。
-- 配图准确包含“玩家 / Players”“MC Relay / 智能代理”“后端服务器 / Backends”“管理控制台 / Control Panel”，并在第二轮将类似游戏角色的人物替换为原创抽象终端节点。
+- 配图最初准确包含“玩家 / Players”“MC Relay / 智能代理”“后端服务器 / Backends”“管理控制台 / Control Panel”，并在第二轮将类似游戏角色的人物替换为原创抽象终端节点；品牌随后按用户要求更正为 YvLink。
 - 无新增或变更后端 HTTP API，`docs/api.html` 无需修改；无数据库结构变更，无需 SQL。
 
 ## 验证结果
