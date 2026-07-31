@@ -1,5 +1,40 @@
 # mc-proxy 交付记录
 
+## 任务标题（补充）
+
+v0.13.0 Release 构建修复：GeyserLite 托管运行时限定 Linux 目标，Windows 发布包恢复构建并完成 GitHub Release 发布。
+
+## 完成时间
+
+2026-07-31 09:45（Asia/Shanghai）
+
+## 变更内容
+
+- GitHub Actions Windows 任务失败原因：`geyserlite 0.3.19` 上游 `src/config.rs` 无条件使用 `std::os::unix::fs::OpenOptionsExt::mode`，在 Windows 无法编译。
+- `Cargo.toml` 将 geyserlite 改为 `[target.'cfg(target_os = "linux")'.dependencies]`，`geyserlite`/`geyserlite-download`/`geyserlite-embed` 特性在非 Linux 目标为空操作。
+- `src/geyser_lite.rs` 所有内置实现改用 `all(feature = "geyserlite", target_os = "linux")` 门控；非 Linux 构建的 `runtime.available=false` 并返回平台提示。
+- 控制台文案与 README/CROSSPLAY/BUILD_UBUNTU24 文档同步说明“内置 GeyserLite 仅 Linux，Windows 使用 external”。
+- 删除空的 v0.13.0 标签与 Release，把标签移动到修复提交（`7ef9c92`）后重新发布；GitHub Actions 全平台通过：Ubuntu 22.04/24.04、Windows 2022、musl x86_64/aarch64 共 5 个安装包已上传。
+
+## 关键决策
+
+- 不 fork/升级 geyserlite 0.4.x 来修复 Windows 编译（需重新评估 API 与生命周期），先用目标限定保住 Windows 发布包；Windows 互通能力由外部 Geyser Standalone 覆盖。
+- v0.13.0 无资产且刚创建，直接移动标签比新增 v0.13.1 更干净，避免出现一个空 Release。
+
+## 风险与待办
+
+- geyserlite 0.3.x 的 Windows 编译问题属于上游；升级 0.4.x 后可评估恢复 Windows 内置翻译层。
+- 真实基岩客户端登录/游玩矩阵仍待自有后端验收。
+
+## 关联文件
+
+- `Cargo.toml`
+- `src/geyser_lite.rs`
+- `web/app.js`
+- `README.md`、`CROSSPLAY.md`、`BUILD_UBUNTU24.md`
+
+---
+
 ## 任务标题
 
 为 mc-proxy 增加 GeyserLite 托管 Bedrock 互通（embedded/subprocess），版本升至 v0.13.0 并在 Ubuntu 24.04 构建验证。
