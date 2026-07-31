@@ -1,4 +1,4 @@
-#[cfg(feature = "geyserlite")]
+#[cfg(all(feature = "geyserlite", target_os = "linux"))]
 use std::{
     sync::{
         Arc,
@@ -7,14 +7,14 @@ use std::{
     time::Duration,
 };
 
-#[cfg(feature = "geyserlite")]
+#[cfg(all(feature = "geyserlite", target_os = "linux"))]
 use anyhow::{Context, Result, anyhow};
 use serde::Serialize;
-#[cfg(feature = "geyserlite")]
+#[cfg(all(feature = "geyserlite", target_os = "linux"))]
 use tokio::{sync::Mutex, task::JoinHandle, time::timeout};
 
 use crate::GeyserLiteMode;
-#[cfg(feature = "geyserlite")]
+#[cfg(all(feature = "geyserlite", target_os = "linux"))]
 use crate::{CrossplayAuthType, CrossplayConfig, CrossplayProvider};
 
 /// GeyserLite 托管运行状态（与构建特性无关，供 API 与控制台展示）。
@@ -29,7 +29,7 @@ pub struct GeyserLiteRuntimeStatus {
     pub error: Option<String>,
 }
 
-#[cfg(feature = "geyserlite")]
+#[cfg(all(feature = "geyserlite", target_os = "linux"))]
 mod imp {
     use super::*;
     use tracing::{error, info, warn};
@@ -316,7 +316,7 @@ mod imp {
     }
 }
 
-#[cfg(not(feature = "geyserlite"))]
+#[cfg(not(all(feature = "geyserlite", target_os = "linux")))]
 mod imp {
     use super::*;
     use crate::CrossplayConfig;
@@ -340,7 +340,7 @@ mod imp {
                 enabled: false,
                 running: false,
                 mode: None,
-                error: None,
+                error: Some("当前平台/构建未启用 GeyserLite 特性".to_string()),
             }
         }
 

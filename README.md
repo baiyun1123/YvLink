@@ -123,7 +123,7 @@ cargo build --release
 cargo build --release
 ```
 
-Bedrock 互通默认使用 GeyserLite（默认特性 `geyserlite` + `geyserlite-download`，运行时会自动获取原生库并校验 SHA-256）。其他构建方式：
+Bedrock 互通默认使用 GeyserLite（默认特性 `geyserlite` + `geyserlite-download`，运行时会自动获取原生库并校验 SHA-256；内置翻译层仅编译进 Linux 目标，Windows 包请使用外部 Geyser Standalone）。其他构建方式：
 
 ```sh
 # 把 libgeyserlite.so 内嵌进二进制，适合离线生产环境
@@ -353,7 +353,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 - 白名单只是后端认证前的快速筛选，不能代替 Minecraft 在线模式身份认证。
 - PROXY Protocol 只传递源/目标地址，不转换 Java 协议版本，也不代替 Velocity/Bungee 转发协议。
 - Minecraft Status 健康检查只证明列表协议可用，不代表玩家可以完成认证、模组协商或进入游戏。
-- Bedrock 客户端可通过外部 Geyser Standalone 或内置 GeyserLite 接入；GeyserLite 由 YvLink 托管时默认内嵌进程内加载，原生库崩溃会终止整个进程，生产可用 subprocess 模式换取隔离。
+- Bedrock 客户端可通过外部 Geyser Standalone 或内置 GeyserLite 接入（GeyserLite 仅 Linux 目标可用）；GeyserLite 由 YvLink 托管时默认内嵌进程内加载，原生库崩溃会终止整个进程且配置变更需重启服务生效，生产可用 subprocess 模式换取隔离与在线热更新。
 
 详细说明：
 
@@ -477,7 +477,7 @@ cd mc-proxy
 cargo build --release
 ```
 
-Bedrock crossplay uses GeyserLite by default (default features `geyserlite` + `geyserlite-download`; the native library is fetched at runtime and verified with SHA-256). Other build modes:
+Bedrock crossplay uses GeyserLite by default (default features `geyserlite` + `geyserlite-download`; the native library is fetched at runtime and verified with SHA-256. The managed translator is compiled only for Linux targets; Windows packages use the external Geyser Standalone). Other build modes:
 
 ```sh
 # Embed libgeyserlite.so into the binary, suitable for offline production
@@ -713,7 +713,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 - The allowlist is only an early filter before backend authentication; it is not a substitute for Minecraft online-mode identity verification.
 - PROXY Protocol only carries source/destination addresses. It does not translate Java protocol versions or replace Velocity/Bungee forwarding.
 - A Minecraft Status health check proves only that the server-list protocol works. It does not prove successful authentication, mod negotiation, or gameplay.
-- Bedrock clients can connect through an external Geyser Standalone or the managed GeyserLite translator. In embedded mode GeyserLite shares the YvLink process, so a native crash terminates the whole process; use subprocess mode when isolation matters.
+- Bedrock clients can connect through an external Geyser Standalone or the managed GeyserLite translator (Linux targets only). In embedded mode GeyserLite shares the YvLink process, so a native crash terminates the whole process and config changes require a service restart; use subprocess mode for isolation and live updates.
 
 Further reading:
 

@@ -9,6 +9,8 @@ mc-proxy 本身处理 Minecraft Java TCP 协议。基岩版使用 UDP/RakNet，�
 - `provider = "external"`（默认）：独立的 Geyser Standalone 进程，需要 Java 21+。
 - `provider = "geyserlite"`：Minekube GeyserLite 托管运行时，由 mc-proxy 直接启动，无需 JVM；支持进程内（embedded）与子进程（subprocess）两种模式。
 
+内置 GeyserLite 只编译进 Linux 目标（geyserlite 0.3.x 上游暂不支持 Windows 编译）；Windows 部署请使用 `provider = "external"`。
+
 external 架构：
 
 ```text

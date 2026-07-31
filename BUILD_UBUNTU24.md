@@ -31,6 +31,7 @@
 
 - 真实 Windows/Android/iOS 基岩客户端登录与游玩矩阵尚未执行，需要自有 Paper/Fabric 后端后验收。
 - GeyserLite 内嵌的 Geyser 会在日志中输出 log4j/GraalVM 相关告警，不影响 UDP 监听与 Pong 响应。
+- geyserlite 0.3.x 上游代码在 Windows 无法编译，内置 GeyserLite 已限定为 Linux 目标；Windows 发布包改用外部 Geyser Standalone（`provider = "external"`），Windows CI 任务已随 v0.13.0 重新构建通过。
 
 ---
 

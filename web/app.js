@@ -666,7 +666,7 @@
   function crossplayRuntimeLabel(config, runtime) {
     if (!runtime) return "--";
     if (config.provider !== "geyserlite") return "独立进程 · 未托管";
-    if (!runtime.available) return "构建未启用 GeyserLite 特性";
+    if (!runtime.available) return "当前平台/构建未启用 GeyserLite";
     if (runtime.running) {
       const mode = runtime.mode === "subprocess" ? "子进程" : "进程内";
       return `托管中 · ${mode}`;
