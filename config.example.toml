@@ -3,14 +3,31 @@
 listen = "127.0.0.1:18080"
 
 [crossplay]
-# Geyser Standalone 是独立 UDP -> Java 协议翻译器；本节用于控制台配置和真实 RakNet 健康探测。
+# 翻译层提供方：external = 独立 Geyser Standalone（UDP -> Java 协议翻译器），
+# geyserlite = 由 mc-proxy 托管 GeyserLite（无需 JVM）。
 enabled = false
+provider = "external"
 bedrock_listen = "0.0.0.0:19132"
 # Geyser 的 Java 目标地址应匹配下面一条路由 host，并解析到本机 mc-proxy。
 java_address = "bedrock.example.com"
 java_port = 25565
 # online / floodgate / offline
 auth_type = "online"
+
+# provider = "geyserlite" 时的托管参数；external 模式下忽略。
+[crossplay.geyserlite]
+# embedded = 同一进程内加载 libgeyserlite.so；subprocess = 托管子进程，隔离更好。
+mode = "embedded"
+# embedded 模式的 libgeyserlite.so 显式路径；留空按 GEYSERLITE_LIBRARY/系统路径/自动下载定位。
+# library_path = "/opt/mc-proxy/geyserlite/libgeyserlite.so"
+# subprocess 模式的原生可执行文件显式路径；留空自动定位/自动下载。
+# binary_path = "/opt/mc-proxy/geyserlite/geyserlite"
+# 离线模式：禁止任何网络获取，必须已提供原生库/可执行文件或使用 geyserlite-embed 特性构建。
+offline = false
+motd_line1 = "YvLink"
+motd_line2 = "Bedrock via GeyserLite"
+# 仅 auth_type = "floodgate" 需要：16 字节 AES-128 密钥的 32 位十六进制字符串，敏感，勿泄露。
+# floodgate_key = "00112233445566778899aabbccddeeff"
 
 [settings]
 # 所有域名路由共用这一个 Minecraft Java 入口

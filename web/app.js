@@ -271,20 +271,54 @@
     form.elements.java_address.value = config.java_address;
     form.elements.java_port.value = config.java_port;
     form.elements.auth_type.value = config.auth_type;
+    form.elements.provider.value = config.provider;
+    form.elements.geyser_mode.value = config.geyserlite.mode;
+    form.elements.geyser_motd_line1.value = config.geyserlite.motd_line1;
+    form.elements.geyser_motd_line2.value = config.geyserlite.motd_line2;
+    form.elements.geyser_library_path.value = config.geyserlite.library_path || "";
+    form.elements.geyser_binary_path.value = config.geyserlite.binary_path || "";
+    form.elements.geyser_offline.checked = config.geyserlite.offline;
+    form.elements.geyser_floodgate_key.value = config.geyserlite.floodgate_key || "";
     $("#crossplayListen").textContent = status.bedrock_listen;
     $("#crossplayJavaTarget").textContent = status.java_target;
     $("#crossplayAuthType").textContent = crossplayAuthLabel(status.auth_type);
+    $("#crossplayProvider").textContent = crossplayProviderLabel(config.provider);
+    $("#crossplayRuntime").textContent = crossplayRuntimeLabel(config, state.crossplay.runtime);
     $("#crossplayLatency").textContent = status.latency_ms == null ? "--" : `${status.latency_ms} ms`;
     const badge = $("#crossplayStateBadge");
     badge.classList.toggle("off", !status.online);
     badge.textContent = status.online ? "ONLINE" : status.enabled ? "OFFLINE" : "DISABLED";
     $("#crossplayLiveLabel").classList.toggle("off", !status.online);
-    $("#crossplayHealthLabel").textContent = status.online ? "UDP 在线" : status.enabled ? "等待 Geyser" : "未启用";
+    $("#crossplayHealthLabel").textContent = status.online
+      ? "UDP 在线"
+      : status.enabled
+        ? config.provider === "geyserlite" ? "等待 GeyserLite" : "等待 Geyser"
+        : "未启用";
+    const runtimeError = state.crossplay.runtime?.error || null;
     const message = $("#crossplayMessage");
     message.textContent = status.online
       ? `RakNet Pong 正常${status.motd ? ` · ${status.motd.split(";").slice(0, 2).join(" · ")}` : ""}`
-      : status.error || "互通监控未启用；Java 路由不受影响。";
-    message.className = `crossplay-message${status.online ? " success" : status.error ? " error" : ""}`;
+      : status.error || runtimeError || "互通监控未启用；Java 路由不受影响。";
+    message.className = `crossplay-message${status.online ? " success" : status.error || runtimeError ? " error" : ""}`;
+    syncCrossplayFields();
+  }
+
+  function syncCrossplayFields() {
+    const form = $("#crossplayForm");
+    const provider = form.elements.provider?.value;
+    const authType = form.elements.auth_type?.value;
+    const mode = form.elements.geyser_mode?.value;
+    const geyserliteSection = $("#geyserliteSection");
+    const embeddedOnly = form.elements.geyser_library_path?.closest("label");
+    const subprocessOnly = form.elements.geyser_binary_path?.closest("label");
+    const floodgateOnly = form.elements.geyser_floodgate_key?.closest("label");
+    if (geyserliteSection) geyserliteSection.hidden = provider !== "geyserlite";
+    if (embeddedOnly) embeddedOnly.hidden = provider !== "geyserlite" || mode !== "embedded";
+    if (subprocessOnly) subprocessOnly.hidden = provider !== "geyserlite" || mode !== "subprocess";
+    if (floodgateOnly) floodgateOnly.hidden = provider !== "geyserlite" || authType !== "floodgate";
+    $("#crossplaySettingsHint").textContent = provider === "geyserlite"
+      ? "由 mc-proxy 托管 GeyserLite"
+      : "外部 Geyser 必须使用相同参数";
   }
 
   function openRuleModal(rule = null) {
@@ -508,10 +542,20 @@
     submit.textContent = "正在验证…";
     const payload = {
       enabled: form.elements.enabled.checked,
+      provider: form.elements.provider.value,
       bedrock_listen: form.elements.bedrock_listen.value.trim(),
       java_address: form.elements.java_address.value.trim(),
       java_port: Number(form.elements.java_port.value),
       auth_type: form.elements.auth_type.value,
+      geyserlite: {
+        mode: form.elements.geyser_mode.value,
+        library_path: form.elements.geyser_library_path.value.trim() || null,
+        binary_path: form.elements.geyser_binary_path.value.trim() || null,
+        offline: form.elements.geyser_offline.checked,
+        motd_line1: form.elements.geyser_motd_line1.value.trim(),
+        motd_line2: form.elements.geyser_motd_line2.value.trim(),
+        floodgate_key: form.elements.geyser_floodgate_key.value.trim() || null,
+      },
     };
     try {
       state.crossplay = await api("/crossplay", { method: "PUT", body: JSON.stringify(payload) });
@@ -615,6 +659,21 @@
     return ({ online: "Online", floodgate: "Floodgate", offline: "Offline" })[authType] || authType;
   }
 
+  function crossplayProviderLabel(provider) {
+    return ({ external: "外部 Geyser Standalone", geyserlite: "内置 GeyserLite" })[provider] || provider;
+  }
+
+  function crossplayRuntimeLabel(config, runtime) {
+    if (!runtime) return "--";
+    if (config.provider !== "geyserlite") return "独立进程 · 未托管";
+    if (!runtime.available) return "构建未启用 GeyserLite 特性";
+    if (runtime.running) {
+      const mode = runtime.mode === "subprocess" ? "子进程" : "进程内";
+      return `托管中 · ${mode}`;
+    }
+    return runtime.error ? "启动失败" : "已停止";
+  }
+
   function formatUptime(seconds) {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -701,6 +760,9 @@
     event.preventDefault();
     try { await saveCrossplay(event.currentTarget); } catch (error) { toast(error.message, true); }
   });
+  for (const name of ["provider", "auth_type", "geyser_mode"]) {
+    $("#crossplayForm").elements[name].addEventListener("change", syncCrossplayFields);
+  }
   $("#ruleGrid").addEventListener("click", async event => {
     const edit = event.target.closest("[data-edit]");
     const toggle = event.target.closest("[data-toggle]");

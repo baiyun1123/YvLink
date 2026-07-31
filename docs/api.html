@@ -177,17 +177,27 @@ ok</pre>
     <section class="endpoint" id="crossplay-get" data-search="基岩互通 crossplay geyser bedrock udp raknet 状态">
       <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/crossplay</span><h3>读取基岩互通配置与状态</h3></div>
       <div class="endpoint-body">
-        <p>返回 Geyser 互通预期配置，并在启用时向 Bedrock UDP 入口发送真实 RakNet Unconnected Ping。<code>online=true</code> 才表示翻译器实际响应；该接口不会把普通 UDP 可达误报为 Geyser 在线。</p>
+        <p>返回 Geyser 互通预期配置与托管运行状态，并在启用时向 Bedrock UDP 入口发送真实 RakNet Unconnected Ping。<code>online=true</code> 才表示翻译器实际响应；该接口不会把普通 UDP 可达误报为 Geyser 在线。<code>runtime</code> 描述 provider 为 <code>geyserlite</code> 时由 mc-proxy 托管的翻译层：<code>available</code> 表示构建是否启用 GeyserLite 特性，<code>running</code> 表示托管实例是否存活，<code>error</code> 记录启动或退出故障。</p>
         <div class="label">请求参数</div><p>无。</p>
         <div class="label">成功响应</div><pre>{
   "ok": true,
   "data": {
     "config": {
       "enabled": true,
+      "provider": "geyserlite",
       "bedrock_listen": "0.0.0.0:19132",
       "java_address": "bedrock.example.com",
       "java_port": 25565,
-      "auth_type": "online"
+      "auth_type": "online",
+      "geyserlite": {
+        "mode": "embedded",
+        "library_path": null,
+        "binary_path": null,
+        "offline": false,
+        "motd_line1": "YvLink",
+        "motd_line2": "Bedrock via GeyserLite",
+        "floodgate_key": null
+      }
     },
     "status": {
       "enabled": true,
@@ -197,6 +207,13 @@ ok</pre>
       "auth_type": "online",
       "latency_ms": 2,
       "motd": "MCPE;Crossplay;...",
+      "error": null
+    },
+    "runtime": {
+      "available": true,
+      "enabled": true,
+      "running": true,
+      "mode": "embedded",
       "error": null
     }
   }
@@ -208,18 +225,29 @@ ok</pre>
     <section class="endpoint" id="crossplay-put" data-search="修改基岩互通 crossplay put geyser floodgate online offline">
       <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/crossplay</span><h3>修改基岩互通配置</h3></div>
       <div class="endpoint-body">
-        <p>校验并原子持久化互通配置，然后立即执行一次 RakNet 健康探测。Geyser 是独立翻译器，必须另外使用相同的监听与 Java 目标参数；保存此配置不会下载、启动或伪装 Geyser。</p>
+        <p>校验并原子持久化互通配置，然后立即执行一次 RakNet 健康探测。provider 为 <code>external</code> 时 Geyser 是独立翻译器，必须另外使用相同的监听与 Java 目标参数；provider 为 <code>geyserlite</code> 时 mc-proxy 会直接托管启动 GeyserLite，启动失败会记录在 <code>runtime.error</code> 而不会回滚已保存配置。未启用对应构建特性时（<code>available=false</code>），geyserlite 模式不会启动翻译层。</p>
         <div class="label">请求体参数</div>
         <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
           <tr><td><code>enabled</code></td><td>布尔</td><td>是否启用互通健康监控。</td></tr>
+          <tr><td><code>provider</code></td><td>枚举</td><td><code>external</code>（Geyser Standalone 独立进程）或 <code>geyserlite</code>（由代理托管）。</td></tr>
           <tr><td><code>bedrock_listen</code></td><td>SocketAddr</td><td>预期 Geyser Bedrock UDP 监听地址，端口不能为 0。</td></tr>
           <tr><td><code>java_address</code></td><td>字符串</td><td>Geyser 连接的 Java 主机；建议匹配一条 mc-proxy Host 路由并在内部解析到本机。</td></tr>
           <tr><td><code>java_port</code></td><td>整数</td><td>1 到 65535，通常为 mc-proxy Java 入口端口。</td></tr>
           <tr><td><code>auth_type</code></td><td>枚举</td><td><code>online</code>、<code>floodgate</code> 或 <code>offline</code>。公网不建议 offline；Floodgate 需要可控后端配套安装。</td></tr>
+          <tr><td><code>geyserlite</code></td><td>对象</td><td>provider 为 <code>geyserlite</code> 时的托管参数，字段见下表。</td></tr>
         </tbody></table>
-        <div class="label">请求示例</div><pre>{"enabled":true,"bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online"}</pre>
+        <div class="label">geyserlite 参数</div>
+        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
+          <tr><td><code>mode</code></td><td>枚举</td><td><code>embedded</code>（进程内加载，默认）或 <code>subprocess</code>（托管子进程）。</td></tr>
+          <tr><td><code>library_path</code></td><td>字符串/null</td><td>仅 embedded：libgeyserlite.so 显式路径；与 binary_path 互斥。</td></tr>
+          <tr><td><code>binary_path</code></td><td>字符串/null</td><td>仅 subprocess：原生可执行文件路径；与 library_path 互斥。</td></tr>
+          <tr><td><code>offline</code></td><td>布尔</td><td>禁止自动下载；必须通过路径、GEYSERLITE_LIBRARY 环境变量或内嵌特性提供原生库。</td></tr>
+          <tr><td><code>motd_line1</code>/<code>motd_line2</code></td><td>字符串</td><td>Bedrock 服务器列表 MOTD 两行文本。</td></tr>
+          <tr><td><code>floodgate_key</code></td><td>字符串/null</td><td>仅 auth_type=floodgate：16 字节 AES-128 密钥的 32 位十六进制字符串，敏感。</td></tr>
+        </tbody></table>
+        <div class="label">请求示例</div><pre>{"enabled":true,"provider":"geyserlite","bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online","geyserlite":{"mode":"embedded","library_path":null,"binary_path":null,"offline":false,"motd_line1":"YvLink","motd_line2":"Bedrock via GeyserLite","floodgate_key":null}}</pre>
         <div class="label">成功响应</div><p><code>200</code>，结构与读取接口相同。</p>
-        <div class="label">错误码</div><p><code>400</code>：地址、端口或目标参数非法，或配置无法持久化。<code>401</code>：认证失败。</p>
+        <div class="label">错误码</div><p><code>400</code>：地址、端口、模式与路径冲突、Floodgate 密钥非法或配置无法持久化。<code>401</code>：认证失败。GeyserLite 启动失败仍返回 <code>200</code>，故障体现在 <code>runtime.error</code>。</p>
       </div>
     </section>
 
@@ -232,7 +260,7 @@ ok</pre>
   "ok": true,
   "data": {
     "admin": {"listen":"127.0.0.1:18080"},
-    "crossplay": {"enabled":false,"bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online"},
+    "crossplay": {"enabled":false,"provider":"external","bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online","geyserlite":{"mode":"embedded","library_path":null,"binary_path":null,"offline":false,"motd_line1":"YvLink","motd_line2":"Bedrock via GeyserLite","floodgate_key":null}},
     "settings": {
       "listen": "0.0.0.0:25565",
       "proxy_enabled": true,

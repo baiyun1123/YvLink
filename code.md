@@ -2,6 +2,53 @@
 
 ## 任务标题
 
+为 mc-proxy 增加 GeyserLite 托管 Bedrock 互通（embedded/subprocess），版本升至 v0.13.0 并在 Ubuntu 24.04 构建验证。
+
+## 完成时间
+
+2026-07-31 09:30（Asia/Shanghai）
+
+## 变更内容
+
+- `Cargo.toml` 新增可选依赖 `geyserlite 0.3`（当前锁定 0.3.19）与特性 `geyserlite`、`geyserlite-download`、`geyserlite-embed`；默认特性为 `geyserlite + geyserlite-download`，`--no-default-features` 可完全移除内置翻译层。
+- `crossplay` 新增 `provider = "external" | "geyserlite"`（旧配置默认 external，保持兼容）与 `[crossplay.geyserlite]`：`mode`（embedded/subprocess）、`library_path`、`binary_path`、`offline`、`motd_line1/line2`、`floodgate_key`（16 字节 32 位十六进制，仅 floodgate）。
+- 新增 `src/geyser_lite.rs`：托管运行时（嵌入式加载或子进程），启动/停止/热更新生命周期、代次防串扰、失败记录到状态而不是回滚配置；未编译特性时提供无操作实现。
+- `GET/PUT /api/v1/crossplay` 返回新增 `runtime`（available/enabled/running/mode/error），PUT 保存配置后按 provider 启动/停止/重启托管翻译层；启动阶段拉起并在退出时优雅停止。
+- Web 控制台互通页新增提供方与托管运行时状态行，表单按提供方/模式/认证方式渐进显示 GeyserLite 参数（含 Floodgate 密钥密码框与警告）。
+- 配置校验：模式与路径互斥、Floodgate 密钥格式与缺失检查、provider 序列化往返测试（修正 `geyserlite` 被误序列化为 `geyser-lite` 的问题）。
+- README（中英）、CROSSPLAY.md、config.example.toml、deploy/config.production.toml、docs/api.html 与 GitHub Actions（MSRV 1.85→1.88）同步更新。
+- Ubuntu 24.04 x86_64（64.83.19.35，Rust 1.97.1）：rustfmt、Clippy 零警告、38 个单元测试、18 个集成测试、release 构建、`--no-default-features` 检查全部通过；清理了 7 个历史 `collapsible_if` lint。
+- 服务器隔离验收：embedded 自动下载 libgeyserlite.so 后 UDP 19133 真实监听、RakNet Pong 返回配置 MOTD、API `running/online` 均为 true；subprocess 模式下 PUT 热更新 MOTD 生效且 mc-proxy 存活。
+- 无数据库结构变更，无需 SQL；`docs/api.html` 已同步跨平台接口文档。
+
+## 关键决策
+
+- embedded 模式与 mc-proxy 共享地址空间，实测“停止后再启动”Geyser 原生桥接会把整个进程带崩，因此已运行的 embedded 实例拒绝配置热更新：保留旧实例并在 `runtime.error` 提示重启 mc-proxy 生效；subprocess 模式支持在线热更新，生产建议先用 subprocess 验收。
+- 默认启用 `geyserlite-download` 让 provider 开箱即用：运行时从 GitHub Release 获取原生库并校验 SHA-256；离线生产用 `geyserlite-embed` 特性内嵌，或预置 `GEYSERLITE_LIBRARY`。
+- Floodgate 密钥以 32 位十六进制存入本地 TOML 与控制台配置（等同 Geyser 的 key 文件），文档与 UI 均标注敏感性和权限要求；未引入 `config_overrides`，第一版只覆盖 typed 字段。
+- 保留 `provider = "external"` 为默认值，既有 Geyser Standalone 部署和监控语义完全不变。
+
+## 风险与待办
+
+- 真实 Windows/Android/iOS 基岩客户端登录、移动、聊天、背包、实体、传送与重连矩阵尚未执行，需要自有 Paper/Fabric 后端后验收。
+- GeyserLite 内嵌 Geyser 会在日志输出 log4j/GraalVM 告警，属于上游原生镜像噪音，不影响 UDP 监听与 Pong；崩溃隔离依赖 subprocess 模式。
+- `geyserlite` crate 锁在 0.3.19（0.4.x 已发布但未评估），后续升级需重新验证 embedded/subprocess 生命周期与 API 字段。
+- v0.13.0 尚未打 Git 标签与创建 GitHub Release；本地 gh 已登录，可在推送后由用户或后续任务创建。
+
+## 关联文件
+
+- `Cargo.toml`、`Cargo.lock`
+- `src/config.rs`、`src/geyser_lite.rs`、`src/api.rs`、`src/main.rs`、`src/lib.rs`、`src/proxy.rs`
+- `web/index.html`、`web/app.js`
+- `config.example.toml`、`deploy/config.production.toml`
+- `README.md`、`CROSSPLAY.md`、`docs/api.html`、`BUILD_UBUNTU24.md`
+- `.github/workflows/build.yml`
+- 服务器：`/root/mc-proxy-v0.13-geyserlite/`（构建目录）、`/root/.cache/geyserlite/`（已校验的原生库缓存）
+
+---
+
+## 任务标题
+
 统一仓库公开许可证说明为 AGPL-3.0-only。
 
 ## 完成时间

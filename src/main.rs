@@ -1,9 +1,12 @@
 use std::{env, path::PathBuf, sync::Arc, time::Instant};
 
 use anyhow::{Context, Result, bail};
-use mc_proxy::{AppConfig, RuntimeManager, api::ApiState, validate_admin_token, web};
+use mc_proxy::{
+    AppConfig, CrossplayProvider, RuntimeManager, api::ApiState, geyser_lite::CrossplayRuntime,
+    validate_admin_token, web,
+};
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 const HELP: &str = "\
@@ -33,8 +36,19 @@ async fn main() -> Result<()> {
 
     let (config, loaded_path) = AppConfig::load(config_path.as_deref())?;
     let admin_listen = config.admin.listen;
-    let manager = Arc::new(RuntimeManager::new(config, loaded_path.clone()));
+    let manager = Arc::new(RuntimeManager::new(config.clone(), loaded_path.clone()));
     manager.start().await?;
+
+    let crossplay_runtime = CrossplayRuntime::new();
+    crossplay_runtime.apply(&config.crossplay).await?;
+    if config.crossplay.enabled && config.crossplay.provider == CrossplayProvider::GeyserLite {
+        let runtime_status = crossplay_runtime.status().await;
+        if runtime_status.running {
+            info!("GeyserLite 托管翻译层已在启动阶段拉起");
+        } else if let Some(error) = runtime_status.error.as_deref() {
+            warn!(%error, "启动阶段 GeyserLite 未能运行，控制台会继续展示该故障");
+        }
+    }
 
     let listener = TcpListener::bind(admin_listen)
         .await
@@ -49,11 +63,13 @@ async fn main() -> Result<()> {
         manager: Arc::clone(&manager),
         admin_token: Arc::from(admin_token),
         started_at: Instant::now(),
+        crossplay_runtime,
     };
 
-    let result = axum::serve(listener, web::router(state))
+    let result = axum::serve(listener, web::router(state.clone()))
         .with_graceful_shutdown(shutdown_signal())
         .await;
+    state.crossplay_runtime.stop().await;
     manager.shutdown().await;
     result.context("管理端服务异常退出")
 }

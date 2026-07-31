@@ -54,10 +54,49 @@ pub struct GlobalSettings {
 #[serde(default, deny_unknown_fields)]
 pub struct CrossplayConfig {
     pub enabled: bool,
+    /// 翻译层提供方：external 使用独立 Geyser Standalone，geyserlite 由本代理托管。
+    pub provider: CrossplayProvider,
     pub bedrock_listen: SocketAddr,
     pub java_address: String,
     pub java_port: u16,
     pub auth_type: CrossplayAuthType,
+    /// provider = "geyserlite" 时的托管参数；external 模式下忽略。
+    pub geyserlite: GeyserLiteConfig,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum CrossplayProvider {
+    #[default]
+    External,
+    #[serde(rename = "geyserlite")]
+    GeyserLite,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum GeyserLiteMode {
+    /// 与 mc-proxy 同一进程内加载 libgeyserlite.so（默认，开销最低）。
+    #[default]
+    Embedded,
+    /// 以托管子进程方式运行 geyserlite，崩溃隔离更好。
+    Subprocess,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct GeyserLiteConfig {
+    pub mode: GeyserLiteMode,
+    /// embedded 模式：libgeyserlite.so 的显式路径；留空走环境变量/系统路径/自动下载。
+    pub library_path: Option<String>,
+    /// subprocess 模式：geyserlite 原生可执行文件的显式路径；留空自动定位/下载。
+    pub binary_path: Option<String>,
+    /// 禁止任何网络获取；此时必须通过路径、环境变量或内嵌特性提供原生库。
+    pub offline: bool,
+    pub motd_line1: String,
+    pub motd_line2: String,
+    /// 仅 auth_type = "floodgate" 需要：16 字节密钥的 32 位十六进制字符串，敏感。
+    pub floodgate_key: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -343,12 +382,28 @@ impl Default for CrossplayConfig {
     fn default() -> Self {
         Self {
             enabled: false,
+            provider: CrossplayProvider::External,
             bedrock_listen: "0.0.0.0:19132"
                 .parse()
                 .expect("default Bedrock address is valid"),
             java_address: "bedrock.example.com".to_string(),
             java_port: 25565,
             auth_type: CrossplayAuthType::Online,
+            geyserlite: GeyserLiteConfig::default(),
+        }
+    }
+}
+
+impl Default for GeyserLiteConfig {
+    fn default() -> Self {
+        Self {
+            mode: GeyserLiteMode::Embedded,
+            library_path: None,
+            binary_path: None,
+            offline: false,
+            motd_line1: "YvLink".to_string(),
+            motd_line2: "Bedrock via GeyserLite".to_string(),
+            floodgate_key: None,
         }
     }
 }
@@ -509,6 +564,36 @@ impl CrossplayConfig {
         }
         if self.java_port == 0 {
             bail!("crossplay.java_port 不能为 0");
+        }
+        if self.provider == CrossplayProvider::GeyserLite {
+            let geyserlite = &self.geyserlite;
+            match geyserlite.mode {
+                GeyserLiteMode::Embedded => {
+                    if geyserlite.binary_path.is_some() {
+                        bail!("crossplay.geyserlite.binary_path 仅用于 subprocess 模式");
+                    }
+                }
+                GeyserLiteMode::Subprocess => {
+                    if geyserlite.library_path.is_some() {
+                        bail!("crossplay.geyserlite.library_path 仅用于 embedded 模式");
+                    }
+                }
+            }
+            if let Some(key) = geyserlite.floodgate_key.as_deref() {
+                let key = key.trim();
+                if key.len() != 32 || !key.chars().all(|character| character.is_ascii_hexdigit()) {
+                    bail!(
+                        "crossplay.geyserlite.floodgate_key 必须是 16 字节密钥的 32 位十六进制字符串"
+                    );
+                }
+            }
+            if self.auth_type == CrossplayAuthType::Floodgate && geyserlite.floodgate_key.is_none()
+            {
+                bail!(
+                    "provider = \"geyserlite\" 且 auth_type = \"floodgate\" 时必须提供 \
+                     crossplay.geyserlite.floodgate_key"
+                );
+            }
         }
         Ok(())
     }
@@ -671,15 +756,15 @@ fn validate_status_response(
     online: Option<u32>,
     max: Option<u32>,
 ) -> Result<()> {
-    if let Some(motd) = motd {
-        if motd.trim().is_empty() || motd.chars().count() > 2048 {
-            bail!("自定义 MOTD 长度必须在 1..=2048 个字符之间");
-        }
+    if let Some(motd) = motd
+        && (motd.trim().is_empty() || motd.chars().count() > 2048)
+    {
+        bail!("自定义 MOTD 长度必须在 1..=2048 个字符之间");
     }
-    if let Some(version_name) = version_name {
-        if version_name.trim().is_empty() || version_name.chars().count() > 64 {
-            bail!("状态版本名称长度必须在 1..=64 个字符之间");
-        }
+    if let Some(version_name) = version_name
+        && (version_name.trim().is_empty() || version_name.chars().count() > 64)
+    {
+        bail!("状态版本名称长度必须在 1..=64 个字符之间");
     }
     if online.is_some_and(|value| value > 1_000_000) || max.is_some_and(|value| value > 1_000_000) {
         bail!("状态玩家数必须在 0..=1000000 之间");
@@ -949,15 +1034,14 @@ fn health_probe_host(route: &RuleConfig, backend: &str) -> String {
     if let Some(host) = route.health_check.minecraft_host.as_deref() {
         return host.trim().trim_end_matches('.').to_ascii_lowercase();
     }
-    if !route.modify_virtual_host {
-        if let Some(host) = route
+    if !route.modify_virtual_host
+        && let Some(host) = route
             .host
             .iter()
             .map(|host| host.trim())
             .find(|host| !host.contains('*') && !host.contains('?'))
-        {
-            return host.trim_end_matches('.').to_ascii_lowercase();
-        }
+    {
+        return host.trim_end_matches('.').to_ascii_lowercase();
     }
     backend_host(backend).to_ascii_lowercase()
 }
@@ -1470,5 +1554,99 @@ motd = "§a覆盖 MOTD"
                 .validate()
                 .unwrap();
         }
+    }
+
+    #[test]
+    fn legacy_crossplay_without_provider_parses_as_external() {
+        let config: CrossplayConfig = toml::from_str(
+            r#"
+enabled = true
+bedrock_listen = "0.0.0.0:19132"
+java_address = "bedrock.example.com"
+java_port = 25565
+auth_type = "online"
+"#,
+        )
+        .unwrap();
+        assert_eq!(config.provider, CrossplayProvider::External);
+        assert_eq!(config.geyserlite, GeyserLiteConfig::default());
+        config.validate().unwrap();
+    }
+
+    #[test]
+    fn geyserlite_floodgate_requires_hex_key() {
+        let base = CrossplayConfig {
+            provider: CrossplayProvider::GeyserLite,
+            auth_type: CrossplayAuthType::Floodgate,
+            ..CrossplayConfig::default()
+        };
+        assert!(base.validate().is_err());
+
+        let invalid_key = CrossplayConfig {
+            geyserlite: GeyserLiteConfig {
+                floodgate_key: Some("zz112233445566778899aabbccddeeff".to_string()),
+                ..GeyserLiteConfig::default()
+            },
+            ..base.clone()
+        };
+        assert!(invalid_key.validate().is_err());
+
+        let valid = CrossplayConfig {
+            geyserlite: GeyserLiteConfig {
+                floodgate_key: Some("00112233445566778899aabbccddeeff".to_string()),
+                ..GeyserLiteConfig::default()
+            },
+            ..base
+        };
+        valid.validate().unwrap();
+    }
+
+    #[test]
+    fn geyserlite_mode_path_conflicts_are_rejected() {
+        let embedded_with_binary = CrossplayConfig {
+            provider: CrossplayProvider::GeyserLite,
+            geyserlite: GeyserLiteConfig {
+                mode: GeyserLiteMode::Embedded,
+                binary_path: Some("/opt/geyserlite".to_string()),
+                ..GeyserLiteConfig::default()
+            },
+            ..CrossplayConfig::default()
+        };
+        assert!(embedded_with_binary.validate().is_err());
+
+        let subprocess_with_library = CrossplayConfig {
+            provider: CrossplayProvider::GeyserLite,
+            geyserlite: GeyserLiteConfig {
+                mode: GeyserLiteMode::Subprocess,
+                library_path: Some("/opt/libgeyserlite.so".to_string()),
+                ..GeyserLiteConfig::default()
+            },
+            ..CrossplayConfig::default()
+        };
+        assert!(subprocess_with_library.validate().is_err());
+
+        let valid = CrossplayConfig {
+            provider: CrossplayProvider::GeyserLite,
+            geyserlite: GeyserLiteConfig {
+                mode: GeyserLiteMode::Subprocess,
+                binary_path: Some("/opt/geyserlite".to_string()),
+                offline: true,
+                ..GeyserLiteConfig::default()
+            },
+            ..CrossplayConfig::default()
+        };
+        valid.validate().unwrap();
+    }
+
+    #[test]
+    fn geyserlite_provider_roundtrips_with_product_name() {
+        let config = CrossplayConfig {
+            provider: CrossplayProvider::GeyserLite,
+            ..CrossplayConfig::default()
+        };
+        let serialized = toml::to_string(&config).unwrap();
+        assert!(serialized.contains("provider = \"geyserlite\""));
+        let parsed: CrossplayConfig = toml::from_str(&serialized).unwrap();
+        assert_eq!(parsed.provider, CrossplayProvider::GeyserLite);
     }
 }

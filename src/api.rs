@@ -14,6 +14,7 @@ use serde_json::{Value, json};
 use crate::{
     AppConfig, CrossplayConfig, CrossplayStatus, GlobalSettings, RuleConfig, RuntimeManager,
     crossplay_status,
+    geyser_lite::{CrossplayRuntime, GeyserLiteRuntimeStatus},
 };
 
 #[derive(Clone)]
@@ -21,6 +22,7 @@ pub struct ApiState {
     pub manager: Arc<RuntimeManager>,
     pub admin_token: Arc<str>,
     pub started_at: Instant,
+    pub crossplay_runtime: CrossplayRuntime,
 }
 
 #[derive(Debug)]
@@ -39,6 +41,7 @@ struct ApiResponse<T> {
 struct CrossplayView {
     config: CrossplayConfig,
     status: CrossplayStatus,
+    runtime: GeyserLiteRuntimeStatus,
 }
 
 pub fn api_router(state: ApiState) -> Router {
@@ -56,7 +59,12 @@ pub fn api_router(state: ApiState) -> Router {
 async fn get_crossplay(State(state): State<ApiState>) -> Json<ApiResponse<CrossplayView>> {
     let config = state.manager.config().await.crossplay;
     let status = crossplay_status(&config).await;
-    success(CrossplayView { config, status })
+    let runtime = state.crossplay_runtime.status().await;
+    success(CrossplayView {
+        config,
+        status,
+        runtime,
+    })
 }
 
 async fn update_crossplay(
@@ -69,8 +77,15 @@ async fn update_crossplay(
         .await
         .map_err(ApiError::bad_request)?
         .crossplay;
+    // 托管 GeyserLite 的启停是尽力而为：失败记录到 runtime 状态而不是回滚配置。
+    let _ = state.crossplay_runtime.apply(&config).await;
     let status = crossplay_status(&config).await;
-    Ok(success(CrossplayView { config, status }))
+    let runtime = state.crossplay_runtime.status().await;
+    Ok(success(CrossplayView {
+        config,
+        status,
+        runtime,
+    }))
 }
 
 async fn session() -> Json<ApiResponse<Value>> {

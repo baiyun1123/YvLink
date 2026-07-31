@@ -3,10 +3,17 @@ listen = "127.0.0.1:18080"
 
 [crossplay]
 enabled = false
+provider = "external"
 bedrock_listen = "0.0.0.0:19132"
 java_address = "bedrock.example.com"
 java_port = 25565
 auth_type = "online"
+
+[crossplay.geyserlite]
+mode = "embedded"
+offline = false
+motd_line1 = "YvLink"
+motd_line2 = "Bedrock via GeyserLite"
 
 [settings]
 listen = "0.0.0.0:25565"

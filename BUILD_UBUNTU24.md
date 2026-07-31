@@ -1,5 +1,39 @@
 # Ubuntu 24 编译、部署与测试报告
 
+## v0.13.0 GeyserLite 托管互通增量报告
+
+- 构建时间：2026-07-31 08:40–09:20（Asia/Shanghai）
+- 目标环境：Ubuntu 24.04.4 LTS x86_64，Rust/Cargo 1.97.1
+- rustfmt：通过
+- Clippy `-D warnings`：通过，0 个警告
+- 单元测试：38 个通过，0 个失败
+- 集成测试：18 个通过，0 个失败
+- release 构建：通过；`cargo check --no-default-features`：通过
+- JavaScript 语法检查（`node --check web/app.js`）：通过
+
+新增覆盖：
+
+- `crossplay.provider = "external" | "geyserlite"`；旧配置默认 `external`，保持兼容。
+- `[crossplay.geyserlite]`：embedded/subprocess 模式、library/binary 路径、offline、MOTD 两行、Floodgate 16 字节十六进制密钥。
+- 序列化往返测试确认 provider 以产品名 `geyserlite` 输出，而不是 kebab-case 的 `geyser-lite`。
+- 配置校验覆盖 Floodgate 密钥格式与缺失、模式与路径互斥冲突、旧 TOML 无新字段解析。
+- 控制台互通页新增提供方与托管运行时状态，表单按提供方/模式/认证方式渐进显示参数。
+- 管理 API `GET/PUT /api/v1/crossplay` 返回 `runtime`（available/enabled/running/mode/error），文档同步更新。
+
+服务器隔离验收：
+
+- embedded 首次启动自动下载 `libgeyserlite.so`（来自 GitHub Release，SHA-256 校验），`0.0.0.0:19133` 真实 UDP 监听，RakNet Pong 返回配置的两行 MOTD，`/api/v1/crossplay` 显示 `running=true`、`online=true`。
+- subprocess 模式以独立子进程运行 GeyserLite；PUT 修改 MOTD 后子进程安全重启，新 MOTD 生效，mc-proxy 进程存活。
+- 实测发现 embedded 在进程内“停止后再次启动”会把整个 mc-proxy 带崩（GeyserLite 原生桥接限制），已把该路径改为安全拒绝：保留当前实例运行，并在 `runtime.error` 提示重启 mc-proxy 生效或改用 subprocess。
+- 测试进程与 18081/25600/19133 监听全部清理；生产 `mc-proxy.service` 未改动。
+
+遗留边界：
+
+- 真实 Windows/Android/iOS 基岩客户端登录与游玩矩阵尚未执行，需要自有 Paper/Fabric 后端后验收。
+- GeyserLite 内嵌的 Geyser 会在日志中输出 log4j/GraalVM 相关告警，不影响 UDP 监听与 Pong 响应。
+
+---
+
 ## v0.11.0 Fabric / Forge / NeoForge 真实矩阵增量报告
 
 - 验收时间：2026-07-30 04:47–05:00（Asia/Shanghai）

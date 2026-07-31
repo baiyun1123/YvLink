@@ -28,7 +28,7 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 
 项目同时提供内置 Web 管理控制台，可在线管理路由、后端池、状态响应、白名单、健康检查和跨平台互通配置，无需手工修改 TOML 后重启服务。
 
-当前开发版本：**v0.12.0**
+当前开发版本：**v0.13.0**
 
 ## 下载
 
@@ -54,7 +54,7 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 - 对原版、Fabric、Forge 与 NeoForge 后续协议执行双向透明转发。
 - Web 控制台提供配置管理、运行指标、后端健康状态和 60 秒实时吞吐曲线。
 - 管理 API 使用 Bearer Token；配置变更通过临时文件和原子重命名持久化。
-- 可配合外部 Geyser Standalone 提供 Bedrock 接入，并通过 RakNet Pong 检查其状态。
+- Bedrock 互通支持两种提供方：外部 Geyser Standalone 独立进程，或由 YvLink 直接托管的 GeyserLite（无需 JVM）；统一通过真实 RakNet Pong 检查状态。
 - 支持 Ctrl+C/SIGTERM 优雅退出、连接数限制、超时控制和 Linux/Android `SO_REUSEPORT`。
 
 ## 工作方式
@@ -83,7 +83,7 @@ YvLink
 
 | 项目 | 要求 |
 | --- | --- |
-| Rust | 1.85 或更高版本 |
+| Rust | 1.88 或更高版本 |
 | Cargo | 随 Rust toolchain 安装 |
 | 操作系统 | Linux 推荐；其他支持 Rust/Tokio 的平台可自行构建 |
 | 管理令牌 | 环境变量 `MC_PROXY_ADMIN_TOKEN`，至少 32 个字符 |
@@ -104,7 +104,8 @@ cargo --version
 | Nginx | 为仅监听回环地址的管理端提供 HTTPS 反向代理 |
 | systemd | 服务守护、自动重启和开机启动 |
 | Certbot | 申请与续期 Let’s Encrypt 证书 |
-| Java 21 + Geyser Standalone | 需要 Bedrock → Java 互通时使用 |
+| Java 21 + Geyser Standalone | 仅在 provider = "external" 的 Bedrock 互通时使用 |
+| GeyserLite 构建特性 | provider = "geyserlite" 时由 YvLink 托管，无需 JVM |
 
 ## 快速启动
 
@@ -120,6 +121,15 @@ cargo build --release
 
 ```sh
 cargo build --release
+```
+
+Bedrock 互通默认使用 GeyserLite（默认特性 `geyserlite` + `geyserlite-download`，运行时会自动获取原生库并校验 SHA-256）。其他构建方式：
+
+```sh
+# 把 libgeyserlite.so 内嵌进二进制，适合离线生产环境
+cargo build --release --features geyserlite-embed
+# 完全移除内置翻译层，只保留外部 Geyser Standalone 监控
+cargo build --release --no-default-features
 ```
 
 ### 2. 创建配置
@@ -189,10 +199,17 @@ listen = "127.0.0.1:18080"
 
 [crossplay]
 enabled = false
+provider = "external"
 bedrock_listen = "0.0.0.0:19132"
 java_address = "bedrock.example.com"
 java_port = 25565
 auth_type = "online"
+
+[crossplay.geyserlite]
+mode = "embedded"
+offline = false
+motd_line1 = "YvLink"
+motd_line2 = "Bedrock via GeyserLite"
 
 [settings]
 listen = "0.0.0.0:25565"
@@ -311,7 +328,7 @@ certbot certificates
 
 - `25565/tcp`：Minecraft Java 公网入口。
 - `80/tcp`、`443/tcp`：Nginx HTTP/HTTPS。
-- `19132/udp`：仅在配置并启用 Geyser Bedrock 入口时需要。
+- `19132/udp`：仅在配置并启用 Bedrock 互通入口（external 或 geyserlite）时需要。
 - `18080/tcp`：建议只监听回环地址，不在防火墙中对公网开放。
 
 ## 验证与测试
@@ -336,7 +353,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 - 白名单只是后端认证前的快速筛选，不能代替 Minecraft 在线模式身份认证。
 - PROXY Protocol 只传递源/目标地址，不转换 Java 协议版本，也不代替 Velocity/Bungee 转发协议。
 - Minecraft Status 健康检查只证明列表协议可用，不代表玩家可以完成认证、模组协商或进入游戏。
-- Bedrock 客户端需要外部 Geyser Standalone；YvLink 本身不实现 UDP → Java 协议翻译。
+- Bedrock 客户端可通过外部 Geyser Standalone 或内置 GeyserLite 接入；GeyserLite 由 YvLink 托管时默认内嵌进程内加载，原生库崩溃会终止整个进程，生产可用 subprocess 模式换取隔离。
 
 详细说明：
 
@@ -371,7 +388,7 @@ YvLink (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwa
 
 An embedded web control panel lets operators manage routes, backend pools, status responses, allowlists, health checks, and crossplay settings without manually editing TOML and restarting the service.
 
-Current development version: **v0.12.0**
+Current development version: **v0.13.0**
 
 ## Downloads
 
@@ -397,7 +414,7 @@ Download installable packages from [GitHub Releases](https://github.com/baiyun11
 - Transparent bidirectional forwarding for Vanilla, Fabric, Forge, and NeoForge traffic after routing.
 - Web-based configuration, runtime metrics, backend health details, and a 60-second live throughput chart.
 - Bearer-token protected management API and atomic configuration persistence.
-- Optional Geyser Standalone integration status with a real RakNet Pong probe.
+- Bedrock crossplay with two providers: an external Geyser Standalone process, or a GeyserLite instance managed directly by YvLink (no JVM required); both are verified with a real RakNet Pong probe.
 - Graceful Ctrl+C/SIGTERM shutdown, connection limits, timeouts, and optional Linux/Android `SO_REUSEPORT`.
 
 ## How It Works
@@ -426,7 +443,7 @@ Multiple domains can share the same listener. YvLink reads the virtual host from
 
 | Item | Requirement |
 | --- | --- |
-| Rust | 1.85 or newer |
+| Rust | 1.88 or newer |
 | Cargo | Installed with the Rust toolchain |
 | Operating system | Linux recommended; other Rust/Tokio platforms may build from source |
 | Admin token | `MC_PROXY_ADMIN_TOKEN`, at least 32 characters |
@@ -447,7 +464,8 @@ cargo --version
 | Nginx | HTTPS reverse proxy for the loopback-only management listener |
 | systemd | Service supervision, restart policy, and start on boot |
 | Certbot | Let’s Encrypt certificate issuance and renewal |
-| Java 21 + Geyser Standalone | Bedrock-to-Java connectivity |
+| Java 21 + Geyser Standalone | Bedrock connectivity only with `provider = "external"` |
+| GeyserLite build feature | Managed Bedrock translator with `provider = "geyserlite"`, no JVM needed |
 
 ## Quick Start
 
@@ -457,6 +475,15 @@ cargo --version
 git clone <your-repository-url>
 cd mc-proxy
 cargo build --release
+```
+
+Bedrock crossplay uses GeyserLite by default (default features `geyserlite` + `geyserlite-download`; the native library is fetched at runtime and verified with SHA-256). Other build modes:
+
+```sh
+# Embed libgeyserlite.so into the binary, suitable for offline production
+cargo build --release --features geyserlite-embed
+# Remove the managed translator entirely, keeping only external Geyser monitoring
+cargo build --release --no-default-features
 ```
 
 If you are already in the project directory:
@@ -532,10 +559,17 @@ listen = "127.0.0.1:18080"
 
 [crossplay]
 enabled = false
+provider = "external"
 bedrock_listen = "0.0.0.0:19132"
 java_address = "bedrock.example.com"
 java_port = 25565
 auth_type = "online"
+
+[crossplay.geyserlite]
+mode = "embedded"
+offline = false
+motd_line1 = "YvLink"
+motd_line2 = "Bedrock via GeyserLite"
 
 [settings]
 listen = "0.0.0.0:25565"
@@ -654,7 +688,7 @@ Open only the ports required by your deployment:
 
 - `25565/tcp`: public Minecraft Java listener.
 - `80/tcp`, `443/tcp`: Nginx HTTP/HTTPS.
-- `19132/udp`: only when a Geyser Bedrock listener is configured and enabled.
+- `19132/udp`: only when a Bedrock crossplay listener (external or geyserlite) is configured and enabled.
 - `18080/tcp`: keep this on loopback; do not expose it publicly through the firewall.
 
 ## Verification
@@ -679,7 +713,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 - The allowlist is only an early filter before backend authentication; it is not a substitute for Minecraft online-mode identity verification.
 - PROXY Protocol only carries source/destination addresses. It does not translate Java protocol versions or replace Velocity/Bungee forwarding.
 - A Minecraft Status health check proves only that the server-list protocol works. It does not prove successful authentication, mod negotiation, or gameplay.
-- Bedrock clients require an external Geyser Standalone instance; YvLink itself does not translate UDP Bedrock traffic into Java protocol traffic.
+- Bedrock clients can connect through an external Geyser Standalone or the managed GeyserLite translator. In embedded mode GeyserLite shares the YvLink process, so a native crash terminates the whole process; use subprocess mode when isolation matters.
 
 Further reading:
 

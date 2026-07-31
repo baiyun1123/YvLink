@@ -205,6 +205,8 @@
               <div><dt>Bedrock UDP 入口</dt><dd id="crossplayListen">--</dd></div>
               <div><dt>Java 目标</dt><dd id="crossplayJavaTarget">--</dd></div>
               <div><dt>认证方式</dt><dd id="crossplayAuthType">--</dd></div>
+              <div><dt>翻译层提供方</dt><dd id="crossplayProvider">--</dd></div>
+              <div><dt>托管运行时</dt><dd id="crossplayRuntime">--</dd></div>
               <div><dt>RakNet 延迟</dt><dd id="crossplayLatency">--</dd></div>
             </dl>
             <p class="crossplay-message" id="crossplayMessage" aria-live="polite">保存配置后检查 Geyser UDP 状态。</p>
@@ -219,12 +221,26 @@
           </article>
         </div>
         <article class="panel settings-panel">
-          <div class="panel-header"><div><p class="panel-kicker">CROSSPLAY MODE</p><h2>互通配置</h2></div><span class="settings-hint">外部 Geyser 必须使用相同参数</span></div>
+          <div class="panel-header"><div><p class="panel-kicker">CROSSPLAY MODE</p><h2>互通配置</h2></div><span class="settings-hint" id="crossplaySettingsHint">外部 Geyser 必须使用相同参数</span></div>
           <form id="crossplayForm" class="form-grid">
             <label><span>Bedrock UDP 监听</span><input name="bedrock_listen" placeholder="0.0.0.0:19132" required><small>需在防火墙同时开放该 UDP 端口。</small></label>
             <label><span>Java 路由域名</span><input name="java_address" list="crossplayRouteHosts" placeholder="bedrock.example.com" required><datalist id="crossplayRouteHosts"></datalist><small>应匹配一条 mc-proxy Host 规则，并解析到本机 Java 入口。</small></label>
             <label><span>Java 入口端口</span><input name="java_port" type="number" min="1" max="65535" required><small>通常与全局 Java 监听端口相同。</small></label>
             <label><span>认证方式</span><select name="auth_type"><option value="online">Online · 登录 Java 账号</option><option value="floodgate">Floodgate · 基岩账号直连</option><option value="offline">Offline · 仅可信测试环境</option></select><small>公网生产不建议 Offline；Floodgate 需要后端配套安装。</small></label>
+            <label class="full"><span>翻译层提供方</span><select name="provider" aria-controls="geyserliteFields"><option value="external">外部 Geyser Standalone（独立进程）</option><option value="geyserlite">内置 GeyserLite（由 mc-proxy 托管）</option></select><small>external 需另行部署 Geyser 并保持参数一致；geyserlite 由代理直接拉起，无需 JVM。</small></label>
+            <section class="protocol-section full" id="geyserliteSection" aria-labelledby="geyserliteFieldsTitle" hidden>
+              <p class="panel-kicker full" id="geyserliteFieldsTitle">GEYSERLITE 托管参数</p>
+              <div class="nested-fields" id="geyserliteFields">
+                <label><span>运行模式</span><select name="geyser_mode"><option value="embedded">Embedded · 进程内加载（默认）</option><option value="subprocess">Subprocess · 托管子进程</option></select><small>embedded 开销最低，但原生库崩溃会带走整个代理；subprocess 隔离性更好。</small></label>
+                <label><span>MOTD 第一行</span><input name="geyser_motd_line1" maxlength="64"></label>
+                <label><span>MOTD 第二行</span><input name="geyser_motd_line2" maxlength="64"></label>
+                <label class="geyser-embedded-only"><span>libgeyserlite.so 路径</span><input name="geyser_library_path" placeholder="留空按环境变量/系统路径/自动下载定位"></label>
+                <label class="geyser-subprocess-only" hidden><span>原生可执行文件路径</span><input name="geyser_binary_path" placeholder="留空按环境变量/自动下载定位"></label>
+                <label class="toggle-field full"><span><strong>离线模式</strong><small>禁止任何网络获取；必须已通过路径或内嵌特性提供原生库/可执行文件。</small></span><input name="geyser_offline" type="checkbox"><i></i></label>
+                <label class="full geyser-floodgate-only" hidden><span>Floodgate 密钥（16 字节 · 32 位十六进制）</span><input name="geyser_floodgate_key" type="password" autocomplete="off" placeholder="00112233445566778899aabbccddeeff"><small class="field-warning">与后端 Floodgate 配套的 AES-128 密钥；等同密钥文件，请勿泄露给不受信任方。</small></label>
+                <p class="field-note full">默认构建已启用自动下载特性；二进制会从 GitHub Release 获取 libgeyserlite.so 并校验 SHA-256。离线生产环境请改用 <code>--features geyserlite-embed</code> 构建，或预置 <code>GEYSERLITE_LIBRARY</code> 环境变量。</p>
+              </div>
+            </section>
             <label class="toggle-field ingress-toggle full"><span><strong>启用互通模式监控</strong><small>启用后控制台会用 RakNet Ping 验证 Geyser 是否真正监听，而不是只显示配置已保存。</small></span><input name="enabled" type="checkbox"><i></i></label>
             <div class="form-actions"><button class="primary-button" type="submit">保存互通配置</button></div>
           </form>

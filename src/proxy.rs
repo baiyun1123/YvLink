@@ -136,62 +136,63 @@ pub async fn proxy_connection(
         .ok_or_else(|| ProxyError::NoRoute(hostname.unwrap_or("<legacy-ping>").to_string()))?;
     let route_id = route.id.clone();
 
-    if let (Some(info), Some(status)) = (&handshake_info, &route.status) {
-        if info.next_state == 1 {
-            return serve_managed_status(
-                client,
-                config,
-                ManagedStatusRequest {
-                    client_handshake: &handshake,
-                    info,
-                    status,
-                    route,
-                    addresses,
-                },
-                metrics,
-            )
-            .await;
-        }
+    if let (Some(info), Some(status)) = (&handshake_info, &route.status)
+        && info.next_state == 1
+    {
+        return serve_managed_status(
+            client,
+            config,
+            ManagedStatusRequest {
+                client_handshake: &handshake,
+                info,
+                status,
+                route,
+                addresses,
+            },
+            metrics,
+        )
+        .await;
     }
 
     let handshake_len = handshake.len();
     let mut prefetched = handshake;
-    if let Some(info) = &handshake_info {
-        if info.next_state == 2 && route.whitelist_enabled {
-            let login_start = timeout(
-                config.handshake_timeout(),
-                read_packet(&mut client, MAX_LOGIN_PACKET),
-            )
-            .await
-            .map_err(ProxyError::HandshakeTimeout)?
-            .map_err(ProxyError::Handshake)?;
-            let player = parse_login_username(&login_start).ok_or_else(|| {
-                ProxyError::Handshake(invalid_data("无法解析 Minecraft Login Start 玩家名"))
-            })?;
-            if !route
-                .whitelist
-                .iter()
-                .any(|allowed| allowed.eq_ignore_ascii_case(&player))
-            {
-                let response = login_disconnect_packet(&route.whitelist_message)
-                    .map_err(ProxyError::Handshake)?;
-                client
-                    .write_all(&response)
-                    .await
-                    .map_err(ProxyError::Forward)?;
-                metrics.uploaded((prefetched.len() + login_start.len()) as u64);
-                metrics.downloaded(response.len() as u64);
-                metrics.whitelist_denied();
-                return Ok(TransferReport {
-                    upload_bytes: (prefetched.len() + login_start.len()) as u64,
-                    download_bytes: response.len() as u64,
-                    elapsed_millis: 0,
-                    backend: "<whitelist-denied>".to_string(),
-                    route_id,
-                });
-            }
-            prefetched.extend_from_slice(&login_start);
+    if let Some(info) = &handshake_info
+        && info.next_state == 2
+        && route.whitelist_enabled
+    {
+        let login_start = timeout(
+            config.handshake_timeout(),
+            read_packet(&mut client, MAX_LOGIN_PACKET),
+        )
+        .await
+        .map_err(ProxyError::HandshakeTimeout)?
+        .map_err(ProxyError::Handshake)?;
+        let player = parse_login_username(&login_start).ok_or_else(|| {
+            ProxyError::Handshake(invalid_data("无法解析 Minecraft Login Start 玩家名"))
+        })?;
+        if !route
+            .whitelist
+            .iter()
+            .any(|allowed| allowed.eq_ignore_ascii_case(&player))
+        {
+            let response =
+                login_disconnect_packet(&route.whitelist_message).map_err(ProxyError::Handshake)?;
+            client
+                .write_all(&response)
+                .await
+                .map_err(ProxyError::Forward)?;
+            metrics.uploaded((prefetched.len() + login_start.len()) as u64);
+            metrics.downloaded(response.len() as u64);
+            metrics.whitelist_denied();
+            return Ok(TransferReport {
+                upload_bytes: (prefetched.len() + login_start.len()) as u64,
+                download_bytes: response.len() as u64,
+                elapsed_millis: 0,
+                backend: "<whitelist-denied>".to_string(),
+                route_id,
+            });
         }
+        prefetched.extend_from_slice(&login_start);
     }
 
     let (mut backend, backend_addr, _backend_guard) =
@@ -609,12 +610,11 @@ async fn serve_managed_status(
         read_packet(&mut client, MAX_HANDSHAKE_PACKET),
     )
     .await
+        && packet_id(&ping) == Some(1)
     {
-        if packet_id(&ping) == Some(1) {
-            client.write_all(&ping).await.map_err(ProxyError::Forward)?;
-            upload_bytes += ping.len();
-            download_bytes += ping.len();
-        }
+        client.write_all(&ping).await.map_err(ProxyError::Forward)?;
+        upload_bytes += ping.len();
+        download_bytes += ping.len();
     }
 
     metrics.uploaded(upload_bytes as u64);
