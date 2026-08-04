@@ -1,5 +1,42 @@
 # mc-proxy 交付记录
 
+## 任务标题
+
+为每条域名路由增加独立的 Bedrock Crossplay 允许开关。
+
+## 完成时间
+
+2026-08-04 15:17（Asia/Shanghai）
+
+## 变更内容
+
+- `RuleConfig` 新增 `crossplay_enabled`，默认 `false`；旧 TOML 与既有 API 请求未包含该字段时保持兼容，并默认不允许互通。
+- 全局 Crossplay 启用时，`crossplay.java_address` 现在必须匹配一条“路由已启用且 `crossplay_enabled = true`”的规则；不能通过停用、删除或取消允许当前目标路由而让运行中的互通失去上游。
+- Web 路由编辑器新增“允许基岩版互通”开关，路由卡片展示允许状态；互通页的 Java 路由候选仅列出已启用且已允许的精确 Host。
+- 更新配置示例、README 中英文说明、`CROSSPLAY.md` 与响应式可检索 API HTML 文档，覆盖新增字段、请求示例和校验失败场景。
+- 新增配置兼容性与互通路由资格单元测试；本机 Termux Rust 标准库缺失导致本地测试无法启动，改由 Ubuntu 24.04 部署服务器使用 Rust 1.88 进行构建验证。
+
+## 关键决策
+
+- 采用“每条路由显式允许 + 全局互通仍只选择一个 `java_address`”的模型，而非让单个 Bedrock UDP 入口同时自动分流到多条路由；这与 Geyser/GeyserLite 的单 Java 上游工作方式一致，并避免含糊的路由选择。
+- 新字段默认关闭，避免升级后任何已有路由在未确认兼容性的情况下自动接受基岩版流量。
+
+## 风险与待办
+
+- 单个 Geyser/GeyserLite 实例仍只能选择一条 Java 路由；需要多个独立 Bedrock 入口时，应部署多个互通实例并使用不同 UDP 端口。
+- 全局 Crossplay 已启用时编辑其目标规则会受到资格校验保护；如需切换，应先允许新的路由并更新 `java_address`，或先关闭全局互通。
+- 待完成 Ubuntu 构建测试、GitHub 推送及目标服务器二进制更新后，使用控制台实际保存一条允许互通的路由进行验收。
+
+## 关联文件
+
+- `src/config.rs`
+- `web/index.html`、`web/app.js`
+- `config.example.toml`、`deploy/config.production.toml`
+- `README.md`、`CROSSPLAY.md`、`docs/api.html`
+- `code.md`
+
+---
+
 ## 任务标题（补充）
 
 v0.13.0 Release 构建修复：GeyserLite 托管运行时限定 Linux 目标，Windows 发布包恢复构建并完成 GitHub Release 发布。

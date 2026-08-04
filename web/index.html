@@ -287,6 +287,7 @@
         <label class="full"><span>负载均衡策略</span><select name="strategy"><option value="sequential">顺序故障转移</option><option value="random">随机</option><option value="round-robin">轮询</option><option value="least-connections">最少连接</option><option value="lowest-latency">最低连接延迟</option></select><small>顺序模式优先使用第一个健康后端；其他模式先选目标，失败后继续尝试池内其余后端。</small></label>
         <label class="full"><span>真实 IP 传递（PROXY Protocol）</span><select name="proxy_protocol" aria-describedby="proxyProtocolHelp"><option value="off">关闭（默认）</option><option value="v1">v1 · 文本头</option><option value="v2">v2 · 二进制头</option></select><small id="proxyProtocolHelp" class="field-warning">只有后端监听器明确支持同一版本时才启用；普通 Minecraft 服务端收到该头会无法完成握手。请同时限制后端端口仅允许代理访问。</small></label>
         <label class="toggle-field full"><span><strong>改写后端握手 Host</strong><small>将握手域名改为后端主机名；代理公共服务器或后端要求固定域名时启用。</small></span><input name="modify_virtual_host" type="checkbox"><i></i></label>
+        <label class="toggle-field full"><span><strong>允许基岩版互通</strong><small>允许全局 Crossplay 入口将此路由作为 Java 上游。启用全局互通时，所选 Java 路由域名必须匹配一条已启用且允许互通的规则。</small></span><input name="crossplay_enabled" type="checkbox"><i></i></label>
         <section class="protocol-section full" aria-labelledby="healthCheckSectionTitle">
           <label class="toggle-field"><span><strong id="healthCheckSectionTitle">主动后端健康检查</strong><small>空闲时主动探测后端；连续失败的节点会排到健康节点之后。</small></span><input name="health_check_enabled" type="checkbox" aria-controls="healthCheckFields"><i></i></label>
           <div class="nested-fields" id="healthCheckFields" hidden>

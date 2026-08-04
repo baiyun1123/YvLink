@@ -204,6 +204,7 @@
           <div><span>主动探测</span><strong>${!rule.health_check?.enabled ? "关闭" : rule.health_check.mode === "minecraft-status" ? "Minecraft Status" : "TCP 端口"}</strong></div>
           <div><span>访问控制</span><strong>${rule.whitelist_enabled ? `白名单 ${rule.whitelist.length} 人` : "后端负责"}</strong></div>
           <div><span>后端握手 Host</span><strong>${rule.modify_virtual_host ? "改写为后端主机" : "保留客户端域名"}</strong></div>
+          <div><span>基岩版互通</span><strong>${rule.crossplay_enabled ? "允许作为 Crossplay 上游" : "未允许"}</strong></div>
         </div>
         <section class="backend-health-list" aria-label="${escapeHtml(rule.name)} 后端健康状态">
           ${backendHealthRows || '<p class="backend-health-empty">路由未运行，暂无后端状态。</p>'}
@@ -252,6 +253,7 @@
     const options = $("#crossplayRouteHosts");
     options.replaceChildren();
     for (const rule of state.config?.rules || []) {
+      if (!rule.enabled || !rule.crossplay_enabled) continue;
       for (const host of rule.host || []) {
         if (host.includes("*") || host.includes("?")) continue;
         const option = document.createElement("option");
@@ -360,6 +362,7 @@
       form.elements.whitelist_enabled.checked = Boolean(rule.whitelist_enabled);
       form.elements.whitelist.value = (rule.whitelist || []).join("\n");
       form.elements.whitelist_message.value = rule.whitelist_message || "§c你不在此服务器的白名单中。";
+      form.elements.crossplay_enabled.checked = Boolean(rule.crossplay_enabled);
       form.elements.enabled.checked = rule.enabled;
     } else {
       form.elements.enabled.checked = true;
@@ -393,6 +396,7 @@
       form.elements.whitelist_enabled.checked = false;
       form.elements.whitelist.value = "";
       form.elements.whitelist_message.value = "§c你不在此服务器的白名单中。";
+      form.elements.crossplay_enabled.checked = false;
     }
     syncRuleAdvancedFields();
     $("#ruleModal").hidden = false;
@@ -460,6 +464,7 @@
       whitelist_enabled: form.elements.whitelist_enabled.checked,
       whitelist: form.elements.whitelist.value.split(/[\n,]+/).map(player => player.trim()).filter(Boolean),
       whitelist_message: form.elements.whitelist_message.value,
+      crossplay_enabled: form.elements.crossplay_enabled.checked,
       enabled: form.elements.enabled.checked,
     };
     const path = state.editingRuleId ? `/rules/${encodeURIComponent(state.editingRuleId)}` : "/rules";
@@ -493,6 +498,7 @@
       whitelist_enabled: Boolean(rule.whitelist_enabled),
       whitelist: rule.whitelist || [],
       whitelist_message: rule.whitelist_message || "§c你不在此服务器的白名单中。",
+      crossplay_enabled: Boolean(rule.crossplay_enabled),
       enabled: !rule.enabled,
     };
     await api(`/rules/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) });

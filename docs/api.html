@@ -231,7 +231,7 @@ ok</pre>
           <tr><td><code>enabled</code></td><td>布尔</td><td>是否启用互通健康监控。</td></tr>
           <tr><td><code>provider</code></td><td>枚举</td><td><code>external</code>（Geyser Standalone 独立进程）或 <code>geyserlite</code>（由代理托管）。</td></tr>
           <tr><td><code>bedrock_listen</code></td><td>SocketAddr</td><td>预期 Geyser Bedrock UDP 监听地址，端口不能为 0。</td></tr>
-          <tr><td><code>java_address</code></td><td>字符串</td><td>Geyser 连接的 Java 主机；建议匹配一条 mc-proxy Host 路由并在内部解析到本机。</td></tr>
+          <tr><td><code>java_address</code></td><td>字符串</td><td>Geyser 连接的 Java 主机；启用互通时必须匹配一条已启用且 <code>crossplay_enabled=true</code> 的 mc-proxy Host 路由，并在内部解析到本机。</td></tr>
           <tr><td><code>java_port</code></td><td>整数</td><td>1 到 65535，通常为 mc-proxy Java 入口端口。</td></tr>
           <tr><td><code>auth_type</code></td><td>枚举</td><td><code>online</code>、<code>floodgate</code> 或 <code>offline</code>。公网不建议 offline；Floodgate 需要可控后端配套安装。</td></tr>
           <tr><td><code>geyserlite</code></td><td>对象</td><td>provider 为 <code>geyserlite</code> 时的托管参数，字段见下表。</td></tr>
@@ -247,7 +247,7 @@ ok</pre>
         </tbody></table>
         <div class="label">请求示例</div><pre>{"enabled":true,"provider":"geyserlite","bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online","geyserlite":{"mode":"embedded","library_path":null,"binary_path":null,"offline":false,"motd_line1":"YvLink","motd_line2":"Bedrock via GeyserLite","floodgate_key":null}}</pre>
         <div class="label">成功响应</div><p><code>200</code>，结构与读取接口相同。</p>
-        <div class="label">错误码</div><p><code>400</code>：地址、端口、模式与路径冲突、Floodgate 密钥非法或配置无法持久化。<code>401</code>：认证失败。GeyserLite 启动失败仍返回 <code>200</code>，故障体现在 <code>runtime.error</code>。</p>
+        <div class="label">错误码</div><p><code>400</code>：地址、端口、模式与路径冲突、Floodgate 密钥非法、Java 地址未匹配已允许互通的路由或配置无法持久化。<code>401</code>：认证失败。GeyserLite 启动失败仍返回 <code>200</code>，故障体现在 <code>runtime.error</code>。</p>
       </div>
     </section>
 
@@ -312,7 +312,7 @@ ok</pre>
       <div class="endpoint-body">
         <p>返回已持久化的全部 host → backend 路由。所有规则共用 <code>settings.listen</code>，数组顺序就是匹配顺序。</p>
         <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{"ok":true,"data":[{"id":"play","name":"主服","host":["play.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"round-robin","proxy_protocol":"off","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"play.example.com","minecraft_protocol":769},"modify_virtual_host":false,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§a欢迎来到主服","version_name":null,"protocol":null,"online":null,"max":null,"fallback":null},"whitelist_enabled":true,"whitelist":["Alice","Bob"],"whitelist_message":"§c你不在此服务器的白名单中。","enabled":true}]}</pre>
+        <div class="label">成功响应</div><pre>{"ok":true,"data":[{"id":"play","name":"主服","host":["play.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"round-robin","proxy_protocol":"off","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"play.example.com","minecraft_protocol":769},"modify_virtual_host":false,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§a欢迎来到主服","version_name":null,"protocol":null,"online":null,"max":null,"fallback":null},"whitelist_enabled":true,"whitelist":["Alice","Bob"],"whitelist_message":"§c你不在此服务器的白名单中。","crossplay_enabled":true,"enabled":true}]}</pre>
         <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
       </div>
     </section>
@@ -333,6 +333,7 @@ ok</pre>
           <tr><td><code>health_check.minecraft_host</code></td><td>字符串或 null</td><td>Status 探测握手 Host，1–255 字节，不能包含通配符、空白或 NUL。null 时优先使用精确路由 Host；通配路由或启用 Host 改写时使用当前后端主机名。</td></tr>
           <tr><td><code>health_check.minecraft_protocol</code></td><td>整数</td><td>Status 探测握手协议号，范围 0 到 2147483647，默认 769。探测会接受服务端返回的版本不匹配状态，但要求响应包含基础 <code>version</code>、<code>players</code> 与 <code>description</code>。</td></tr>
           <tr><td><code>modify_virtual_host</code></td><td>布尔</td><td>是否把转发给后端的 Minecraft 握手 Host 改为 backend 的主机名；后端要求固定域名时启用。</td></tr>
+          <tr><td><code>crossplay_enabled</code></td><td>布尔</td><td>是否允许该路由作为全局 Bedrock Crossplay 的 Java 上游，默认 <code>false</code>。全局互通启用时，<code>crossplay.java_address</code> 必须匹配一条已启用且该字段为 <code>true</code> 的规则。</td></tr>
           <tr><td><code>status</code></td><td>对象或 null</td><td>存在时由代理管理服务器列表响应。<code>mode</code> 为 <code>custom</code> 时完全生成响应；为 <code>backend</code> 时读取后端 JSON，并保留 <code>forgeData</code>、<code>modinfo</code>、favicon、玩家 sample 和其他未知字段。</td></tr>
           <tr><td><code>status.cache_ttl_secs</code></td><td>整数</td><td>-1 到 86400；后端模式按 backend 与客户端协议号缓存，-1 或 0 不复用缓存。</td></tr>
           <tr><td><code>status.motd</code> 等覆盖字段</td><td>可空</td><td><code>motd</code>、<code>version_name</code>、<code>protocol</code>、<code>online</code>、<code>max</code>。后端模式中只有非 null 字段会覆盖后端原值。</td></tr>
@@ -342,7 +343,7 @@ ok</pre>
           <tr><td><code>whitelist_message</code></td><td>字符串</td><td>非白名单玩家收到的 Login Disconnect 文本组件或 § 格式消息，1 到 1024 个字符。</td></tr>
           <tr><td><code>enabled</code></td><td>布尔</td><td>是否纳入当前入口的路由表。</td></tr>
         </tbody></table>
-        <div class="label">请求示例</div><pre>{"id":"mod","name":"模组服","host":["mod.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"least-connections","proxy_protocol":"v2","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"mod.example.com","minecraft_protocol":769},"modify_virtual_host":true,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§b模组服在线","version_name":null,"protocol":null,"online":null,"max":null,"fallback":{"motd":"§c后端暂时离线","version_name":"维护中","protocol":-1,"online":0,"max":100}},"whitelist_enabled":false,"whitelist":[],"whitelist_message":"§c你不在此服务器的白名单中。","enabled":true}</pre>
+        <div class="label">请求示例</div><pre>{"id":"mod","name":"模组服","host":["mod.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"least-connections","proxy_protocol":"v2","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"mod.example.com","minecraft_protocol":769},"modify_virtual_host":true,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§b模组服在线","version_name":null,"protocol":null,"online":null,"max":null,"fallback":{"motd":"§c后端暂时离线","version_name":"维护中","protocol":-1,"online":0,"max":100}},"whitelist_enabled":false,"whitelist":[],"whitelist_message":"§c你不在此服务器的白名单中。","crossplay_enabled":true,"enabled":true}</pre>
         <div class="label">成功响应</div><p><code>201</code>，data 为创建后的规则。</p>
         <div class="label">错误码</div><p><code>400</code>：ID/host 重复、参数非法、入口重载失败或持久化失败。<code>401</code>：认证失败。</p>
       </div>
@@ -351,7 +352,7 @@ ok</pre>
     <section class="endpoint" id="rules-put" data-search="修改规则 rules put id 启用 停用 域名路由">
       <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/rules/{id}</span><h3>修改或启停规则</h3></div>
       <div class="endpoint-body">
-        <p>完整替换指定 host 路由。路径 ID 为权威值，请求体中的 ID 会被路径值覆盖。修改 host、backend、健康检查、PROXY Protocol、MOTD、白名单、握手 Host 改写或启用状态会重载单入口路由表。</p>
+        <p>完整替换指定 host 路由。路径 ID 为权威值，请求体中的 ID 会被路径值覆盖。修改 host、backend、健康检查、PROXY Protocol、MOTD、白名单、握手 Host 改写、Crossplay 允许状态或启用状态会重载单入口路由表。全局 Crossplay 已启用时，不能使其当前 Java 地址失去匹配的允许路由。</p>
         <div class="label">路径参数</div><table><tbody><tr><td><code>id</code></td><td>规则唯一 ID。</td></tr></tbody></table>
         <div class="label">请求体</div><p>与新建规则相同。</p>
         <div class="label">成功响应</div><p><code>200</code>，data 为更新后的规则。</p>

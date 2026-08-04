@@ -39,6 +39,7 @@ proxy_protocol = "off"
 modify_virtual_host = false
 whitelist_enabled = false
 whitelist = []
+crossplay_enabled = false
 enabled = true
 
 [rules.health_check]

@@ -75,7 +75,19 @@ java:
   auth-type: online
 ```
 
-`java.address` 应匹配一条 mc-proxy 路由的 Host，并解析到 mc-proxy 的 Java 监听地址。生产环境可通过内部 DNS或 `/etc/hosts` 将专用域名解析到 `127.0.0.1`，避免 Geyser 流量绕公网。
+`java.address` 应匹配一条已启用且设置 `crossplay_enabled = true` 的 mc-proxy 路由 Host，并解析到 mc-proxy 的 Java 监听地址。每条路由独立决定是否允许被基岩互通使用；全局 Crossplay 同时只会通过 `java_address` 选择其中一条路由。生产环境可通过内部 DNS或 `/etc/hosts` 将专用域名解析到 `127.0.0.1`，避免 Geyser 流量绕公网。
+
+```toml
+[[rules]]
+id = "bedrock"
+name = "允许基岩版进入的主服"
+host = "bedrock.example.com"
+backend = "10.0.0.2:25565"
+crossplay_enabled = true
+enabled = true
+```
+
+其他 Java 路由保持或设置 `crossplay_enabled = false`，就不会被全局互通配置选中。若全局 Crossplay 已启用，不能停用、删除或取消允许当前 `java_address` 所匹配的路由；请先关闭互通或把 `java_address` 切换到另一条已允许的路由。
 
 ## 认证模式
 

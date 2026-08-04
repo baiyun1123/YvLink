@@ -235,6 +235,7 @@ proxy_protocol = "off"
 modify_virtual_host = false
 whitelist_enabled = false
 whitelist = []
+crossplay_enabled = false
 enabled = true
 
 [rules.health_check]
@@ -269,6 +270,7 @@ max = 100
 | `rules.backend` | 单个后端或后端数组，格式为 `host:port` |
 | `rules.strategy` | `sequential`、`random`、`round-robin`、`least-connections` 或 `lowest-latency` |
 | `rules.modify_virtual_host` | 是否将握手 Host 改写为后端主机名 |
+| `rules.crossplay_enabled` | 是否允许该已启用路由作为全局 Bedrock Crossplay 的 Java 上游；默认 `false` |
 | `rules.proxy_protocol` | `off`、`v1` 或 `v2`；普通服务端通常必须保持 `off` |
 | `rules.health_check.mode` | `tcp` 只检查端口；`minecraft-status` 验证 Status JSON 与 Ping/Pong |
 | `rules.status.mode` | `custom` 由代理生成状态；`backend` 保留后端状态并覆盖指定字段 |
@@ -595,6 +597,7 @@ proxy_protocol = "off"
 modify_virtual_host = false
 whitelist_enabled = false
 whitelist = []
+crossplay_enabled = false
 enabled = true
 
 [rules.health_check]
@@ -629,6 +632,7 @@ max = 100
 | `rules.backend` | One backend or a backend array, formatted as `host:port` |
 | `rules.strategy` | `sequential`, `random`, `round-robin`, `least-connections`, or `lowest-latency` |
 | `rules.modify_virtual_host` | Rewrites the Handshake host to the backend hostname |
+| `rules.crossplay_enabled` | Allows this enabled route to serve as the Java upstream for global Bedrock Crossplay; defaults to `false` |
 | `rules.proxy_protocol` | `off`, `v1`, or `v2`; ordinary Minecraft servers normally require `off` |
 | `rules.health_check.mode` | `tcp` checks reachability; `minecraft-status` validates Status JSON and Ping/Pong |
 | `rules.status.mode` | `custom` generates a response; `backend` preserves the backend response and overrides selected fields |

@@ -134,6 +134,10 @@ pub struct RuleConfig {
     pub whitelist: Vec<String>,
     #[serde(default = "default_whitelist_message")]
     pub whitelist_message: String,
+    /// 是否允许全局 Bedrock Crossplay 入口把此规则作为 Java 上游。
+    /// Crossplay 仍只有一个 UDP 监听入口，通过 java_address 选择其中一条允许的规则。
+    #[serde(default)]
+    pub crossplay_enabled: bool,
     #[serde(default = "default_true")]
     pub enabled: bool,
 }
@@ -423,6 +427,7 @@ impl Default for RuleConfig {
             whitelist_enabled: false,
             whitelist: Vec::new(),
             whitelist_message: default_whitelist_message(),
+            crossplay_enabled: false,
             enabled: true,
         }
     }
@@ -520,13 +525,18 @@ impl AppConfig {
                     self.settings.listen.port()
                 );
             }
-            if !self.rules.iter().filter(|rule| rule.enabled).any(|rule| {
-                rule.host
-                    .iter()
-                    .any(|pattern| host_matches(pattern, &self.crossplay.java_address))
-            }) {
+            if !self
+                .rules
+                .iter()
+                .filter(|rule| rule.enabled && rule.crossplay_enabled)
+                .any(|rule| {
+                    rule.host
+                        .iter()
+                        .any(|pattern| host_matches(pattern, &self.crossplay.java_address))
+                })
+            {
                 bail!(
-                    "crossplay.java_address 未匹配任何已启用路由: {}",
+                    "crossplay.java_address 未匹配任何已启用且允许 Crossplay 的路由: {}",
                     self.crossplay.java_address
                 );
             }
@@ -1474,6 +1484,7 @@ proxy_protocol={value}
         let mut config = AppConfig::default();
         config.crossplay.enabled = true;
         config.crossplay.java_address = "example.com".to_string();
+        config.rules[0].crossplay_enabled = true;
         assert!(config.validate().is_ok());
 
         config.crossplay.java_port = 25566;
@@ -1481,8 +1492,25 @@ proxy_protocol={value}
         config.crossplay.java_port = 25565;
         config.rules[0].host = vec!["play.example.com".to_string()];
         assert!(config.validate().is_err());
+        config.rules[0].host = vec!["example.com".to_string()];
+        config.rules[0].crossplay_enabled = false;
+        assert!(config.validate().is_err());
         config.crossplay.enabled = false;
         assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn legacy_rule_without_crossplay_flag_defaults_to_disabled() {
+        let rule: RuleConfig = toml::from_str(
+            r#"
+id = "legacy"
+name = "旧路由"
+host = "legacy.example.com"
+backend = "127.0.0.1:25565"
+"#,
+        )
+        .unwrap();
+        assert!(!rule.crossplay_enabled);
     }
 
     #[test]

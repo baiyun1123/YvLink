@@ -56,6 +56,8 @@ modify_virtual_host = false
 whitelist_enabled = true
 whitelist = ["Alice", "Bob"]
 whitelist_message = "§c你不在此服务器的白名单中。"
+# 只有 true 的已启用路由才能作为全局 Bedrock Crossplay 的 Java 上游。
+crossplay_enabled = false
 enabled = true
 
 [rules.health_check]
@@ -94,6 +96,7 @@ proxy_protocol = "off"
 modify_virtual_host = true
 whitelist_enabled = false
 whitelist = []
+crossplay_enabled = false
 enabled = true
 
 [rules.health_check]
@@ -132,6 +135,7 @@ proxy_protocol = "off"
 modify_virtual_host = false
 whitelist_enabled = false
 whitelist = []
+crossplay_enabled = false
 enabled = true
 
 [rules.health_check]
