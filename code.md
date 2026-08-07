@@ -15,6 +15,7 @@ v0.14.0：托管 ViaLite 多版本兼容、自动安全升级、Floodgate/NotEno
 - 配置校验禁止 ViaLite 与 PROXY protocol 同时启用；使用原生 ViaLite `forwarding = none`，不伪造 Velocity/Bungee 身份转发。新增配置和后端映射单元测试。
 - 控制台改为 YvLink 品牌，互通页增加 ViaLite 状态、配置表单和兼容性边界说明；加入减少动态效果偏好支持，更新静态资源缓存版本。
 - 新增校验 ViaLite 官方 `checksums.txt` 的安装脚本，以及每天执行的 systemd 自动更新服务/定时器；更新器先验证候选二进制和服务健康，再原子替换并支持回滚，且明确拒绝降级。
+- 修正跨平台 CI：ViaLite 配置校验测试改用当前测试可执行文件的绝对路径，避免 Windows 将 Linux 示例 `/opt/...` 误判为相对路径。
 - 说明 Floodgate 仅在实际 Java 后端也安装并配置同一密钥时可用；NotEnoughBandwidth 是 Fabric 客户端/服务端 Mod，不能嵌进 TCP 代理，需在自有 Fabric 后端和客户端部署。
 - 目标服务器完成 Rust 1.88 release 编译、部署和验收：`yvlink.service` 运行 v0.14.0，`/healthz` 正常，ViaLite v0.3.0 已校验安装但保持关闭，`yvlink-update.timer` 已启用；更新器实测识别 GitHub v0.13.0 并拒绝将当前 v0.14.0 降级。部署前备份位于服务器 `/root/yvlink-backups/20260808-015410/`。
 

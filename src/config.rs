@@ -1778,7 +1778,15 @@ auth_type = "online"
         config.via.binary_path = Some("vialite".to_string());
         assert!(config.validate().is_err());
 
-        config.via.binary_path = Some("/opt/mc-proxy/vialite/vialite".to_string());
+        // `Path::is_absolute` follows the host platform. Use the test
+        // executable so this validation test stays meaningful on Windows
+        // while production ViaLite remains Linux-only.
+        config.via.binary_path = Some(
+            std::env::current_exe()
+                .expect("test executable path")
+                .to_string_lossy()
+                .into_owned(),
+        );
         assert!(config.validate().is_ok());
         config.rules[0].proxy_protocol = ProxyProtocolVersion::V2;
         assert!(config.validate().is_err());
