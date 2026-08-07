@@ -183,6 +183,8 @@ code, kbd { font-family: var(--font-code); }
 .protocol-grid small { color: var(--color-faint); font: 9px/1.45 var(--font-code); }
 .protocol-note { margin: 0; padding: 0 18px 16px; color: var(--color-muted); font-size: 10px; line-height: 1.65; }
 .crossplay-grid { margin-bottom: 16px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 16px; }
+.via-grid { margin-top: 16px; }
+.via-settings-panel { margin-bottom: 16px; }
 .crossplay-message { margin: 0; padding: 14px 18px; border-top: 1px solid var(--color-border); color: var(--color-muted); font-size: 11px; line-height: 1.65; }
 .crossplay-message.error { color: #fda4af; }
 .crossplay-message.success { color: #86efac; }
@@ -325,6 +327,10 @@ input:disabled { opacity: .55; cursor: not-allowed; }
 .toast { min-width: 250px; max-width: 380px; padding: 13px 14px; color: var(--color-foreground); border: 1px solid var(--color-border); border-left: 3px solid var(--color-accent); border-radius: var(--radius-sm); background: #111d30; box-shadow: var(--shadow-panel); animation: toast-in .2s ease; }
 .toast.error { border-left-color: var(--color-destructive); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(5px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
 
 @media (max-width: 1140px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }

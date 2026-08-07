@@ -1,6 +1,6 @@
 # Minecraft 协议与模组兼容矩阵
 
-更新时间：2026-07-30
+更新时间：2026-08-08
 
 ## 当前工作模式
 
@@ -18,7 +18,9 @@ v0.11.0 是“协议感知的薄代理”：解析 Handshake、Status Request/Pi
 | Forge 1.13–1.20.1 | 薄代理协议矩阵通过 | `\0FML2\0`/`\0FML3\0` 路由与改写保留；双向 `fml:loginwrapper` 类负载逐字节保真 | 不提供终止会话代理所需的 FML 中继、缓存重放与服务器切换 |
 | Forge/NeoForge 1.20.2+ | 真实服务端前段矩阵通过 | Forge 52.1.16 与 NeoForge 21.1.244：`\0FORGE` Login、Configuration 首包和 `forgeData`/`isModded` 状态扩展经代理保真 | 尚未执行完整 Configuration 状态机、进服/游玩及复杂模组包矩阵；不支持 Velocity modern forwarding |
 | Paper/Velocity 后端 | 仅普通直连后端模式 | 基本 TCP/Minecraft 透传可用 | 后端不能要求 Velocity/Bungee 玩家信息转发 |
-| Bedrock → Java | Geyser 外部翻译层 | mc-proxy 提供 Crossplay 配置与真实 RakNet UDP 健康探测 | 客户端模组无法翻译；Floodgate 仅适用于可安装配套组件的后端 |
+| Bedrock → Java | Geyser 外部翻译层或托管 GeyserLite | mc-proxy 提供 Crossplay 配置与真实 RakNet UDP 健康探测；托管 GeyserLite 支持 Floodgate 密钥 | 客户端模组无法翻译；Floodgate 仅适用于可安装配套组件的后端 |
+| Java → 不同版本 Java 后端 | 可选 ViaLite 托管 subprocess | 已选路后经仅回环 ViaLite 入口连接后端，控制台可查看运行状态 | 不解决客户端前端握手兼容；不能与 PROXY Protocol 共用；尚不提供 Velocity/Bungee 身份转发 |
+| Fabric + NotEnoughBandwidth（NEB） | 后端/客户端模组配套 | YvLink 后续流量保持字节透明，可与已验证的 NEB 链路共存 | NEB 不是代理模块，不能嵌入；必须在真实服务端与客户端组合中验收兼容模式和黑名单 |
 
 ## 重要限制
 
@@ -27,6 +29,8 @@ v0.11.0 是“协议感知的薄代理”：解析 Handshake、Status Request/Pi
 3. 薄代理无法安全生成 Velocity modern forwarding 数据。若后端安装 FabricProxy-Lite 或 Proxy-Compatible-Forge 并强制 modern forwarding，当前版本会被后端拒绝。
 4. v0.8.0 的握手观察指标只按 Host 中的 `FML`、`FML2/FML3`、`FORGE` 标记分类。Fabric 与原版没有可在初始 Handshake 中可靠区分的统一标记，所以合并为“原版 / Fabric”；指标不代表玩家已完成认证或模组协商。
 5. PROXY Protocol 默认关闭。启用时后端必须在该端口明确支持相同版本，并应通过防火墙只接受代理连接；它不会生成 Velocity/Bungee 转发数据。
+6. ViaLite 放在 YvLink 与后端之间，不能像 Gate Lite 那样在原始字节管道中凭空重写协议。启用它时必须关闭路由的 PROXY Protocol；当前项目会对 ViaLite 使用 `forwarding = none`。
+7. [NotEnoughBandwidth](https://github.com/USS-Shenzhou/NotEnoughBandwidth) 的紧凑包头、聚合压缩和延迟区块缓存需要 Fabric 生态中的服务端/客户端实现协作。它不是一个可嵌入 YvLink 的 Rust 网络库；请在生产启用前执行目标模组组合的完整登录与游玩回归。
 
 ## 真实服务端矩阵结果
 

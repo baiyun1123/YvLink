@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Serialize;
@@ -10,13 +10,14 @@ use tracing::{error, info, warn};
 
 use crate::{
     AppConfig, CrossplayConfig, ForwardConfig, GlobalSettings, Metrics, MetricsSnapshot,
-    RuleConfig, create_listener, serve,
+    RuleConfig, ViaLiteConfig, create_listener, serve,
 };
 
 pub struct RuntimeManager {
     inner: Mutex<ManagerInner>,
     mutation: Mutex<()>,
     config_path: PathBuf,
+    via_dial_targets: Arc<tokio::sync::RwLock<HashMap<String, String>>>,
 }
 
 struct ManagerInner {
@@ -56,7 +57,16 @@ impl RuntimeManager {
             }),
             mutation: Mutex::new(()),
             config_path,
+            via_dial_targets: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
+    }
+
+    pub fn with_via_dial_targets(
+        mut self,
+        via_dial_targets: Arc<tokio::sync::RwLock<HashMap<String, String>>>,
+    ) -> Self {
+        self.via_dial_targets = via_dial_targets;
+        self
     }
 
     pub async fn start(&self) -> Result<()> {
@@ -65,7 +75,11 @@ impl RuntimeManager {
         let config = inner.config.clone();
         if config.settings.proxy_enabled {
             let metrics = Arc::clone(&inner.metrics);
-            inner.handle = Some(start_proxy(&config, metrics)?);
+            inner.handle = Some(start_proxy(
+                &config,
+                metrics,
+                Arc::clone(&self.via_dial_targets),
+            )?);
         }
         if let Err(error) = config.persist(&self.config_path) {
             if let Some(handle) = inner.handle.take() {
@@ -120,6 +134,17 @@ impl RuntimeManager {
         let mut inner = self.inner.lock().await;
         let mut config = inner.config.clone();
         config.crossplay = crossplay;
+        config.persist(&self.config_path)?;
+        inner.config = config.clone();
+        Ok(config)
+    }
+
+    pub async fn update_via(&self, via: ViaLiteConfig) -> Result<AppConfig> {
+        let _mutation = self.mutation.lock().await;
+        let mut inner = self.inner.lock().await;
+        let mut config = inner.config.clone();
+        config.via = via;
+        config.validate()?;
         config.persist(&self.config_path)?;
         inner.config = config.clone();
         Ok(config)
@@ -186,11 +211,16 @@ impl RuntimeManager {
         }
 
         let new_handle = if new_config.settings.proxy_enabled {
-            match start_proxy(&new_config, Arc::clone(&inner.metrics)) {
+            match start_proxy(
+                &new_config,
+                Arc::clone(&inner.metrics),
+                Arc::clone(&self.via_dial_targets),
+            ) {
                 Ok(handle) => Some(handle),
                 Err(error) => {
                     let metrics = Arc::clone(&inner.metrics);
-                    inner.handle = restart_old(&old_config, metrics)?;
+                    inner.handle =
+                        restart_old(&old_config, metrics, Arc::clone(&self.via_dial_targets))?;
                     return Err(error);
                 }
             }
@@ -203,8 +233,8 @@ impl RuntimeManager {
                 stop_proxy(handle).await;
             }
             let metrics = Arc::clone(&inner.metrics);
-            inner.handle =
-                restart_old(&old_config, metrics).context("新配置持久化失败，且旧入口回滚失败")?;
+            inner.handle = restart_old(&old_config, metrics, Arc::clone(&self.via_dial_targets))
+                .context("新配置持久化失败，且旧入口回滚失败")?;
             return Err(error);
         }
 
@@ -218,8 +248,12 @@ fn is_enabled_catch_all(rule: &RuleConfig) -> bool {
     rule.enabled && rule.host.iter().any(|host| host.trim() == "*")
 }
 
-fn start_proxy(config: &AppConfig, metrics: Arc<Metrics>) -> Result<ProxyHandle> {
-    let forward = Arc::new(ForwardConfig::from_app(config));
+fn start_proxy(
+    config: &AppConfig,
+    metrics: Arc<Metrics>,
+    via_dial_targets: Arc<tokio::sync::RwLock<HashMap<String, String>>>,
+) -> Result<ProxyHandle> {
+    let forward = Arc::new(ForwardConfig::from_app(config).with_via_dial_targets(via_dial_targets));
     let listener = create_listener(&forward)
         .with_context(|| format!("Minecraft 入口无法监听 {}", forward.listen))?;
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
@@ -244,9 +278,13 @@ fn start_proxy(config: &AppConfig, metrics: Arc<Metrics>) -> Result<ProxyHandle>
     })
 }
 
-fn restart_old(config: &AppConfig, metrics: Arc<Metrics>) -> Result<Option<ProxyHandle>> {
+fn restart_old(
+    config: &AppConfig,
+    metrics: Arc<Metrics>,
+    via_dial_targets: Arc<tokio::sync::RwLock<HashMap<String, String>>>,
+) -> Result<Option<ProxyHandle>> {
     if config.settings.proxy_enabled {
-        start_proxy(config, metrics).map(Some)
+        start_proxy(config, metrics, via_dial_targets).map(Some)
     } else {
         Ok(None)
     }

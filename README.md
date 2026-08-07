@@ -28,7 +28,7 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 
 项目同时提供内置 Web 管理控制台，可在线管理路由、后端池、状态响应、白名单、健康检查和跨平台互通配置，无需手工修改 TOML 后重启服务。
 
-当前开发版本：**v0.13.0**
+当前开发版本：**v0.14.0**
 
 ## 下载
 
@@ -55,6 +55,8 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 - Web 控制台提供配置管理、运行指标、后端健康状态和 60 秒实时吞吐曲线。
 - 管理 API 使用 Bearer Token；配置变更通过临时文件和原子重命名持久化。
 - Bedrock 互通支持两种提供方：外部 Geyser Standalone 独立进程，或由 YvLink 直接托管的 GeyserLite（无需 JVM）；统一通过真实 RakNet Pong 检查状态。
+- 可选托管 ViaLite：以隔离子进程在选路后把 Java 连接转到不同版本的后端；运行时状态和配置可在控制台查看。
+- 提供校验、原子替换与失败回滚的 systemd 自动更新器，无需服务器重新拉取源码再部署。
 - 支持 Ctrl+C/SIGTERM 优雅退出、连接数限制、超时控制和 Linux/Android `SO_REUSEPORT`。
 
 ## 工作方式
@@ -106,6 +108,7 @@ cargo --version
 | Certbot | 申请与续期 Let’s Encrypt 证书 |
 | Java 21 + Geyser Standalone | 仅在 provider = "external" 的 Bedrock 互通时使用 |
 | GeyserLite 构建特性 | provider = "geyserlite" 时由 YvLink 托管，无需 JVM |
+| ViaLite（可选） | Java 后端版本兼容；由 `deploy/install-vialite.sh` 安装为隔离子进程 |
 
 ## 快速启动
 
@@ -211,6 +214,13 @@ offline = false
 motd_line1 = "YvLink"
 motd_line2 = "Bedrock via GeyserLite"
 
+[via]
+enabled = false
+# binary_path = "/opt/mc-proxy/vialite/vialite"
+runtime_dir = "/run/mc-proxy/vialite"
+gate_protocol = "auto"
+backend_version = "auto"
+
 [settings]
 listen = "0.0.0.0:25565"
 proxy_enabled = true
@@ -274,8 +284,43 @@ max = 100
 | `rules.proxy_protocol` | `off`、`v1` 或 `v2`；普通服务端通常必须保持 `off` |
 | `rules.health_check.mode` | `tcp` 只检查端口；`minecraft-status` 验证 Status JSON 与 Ping/Pong |
 | `rules.status.mode` | `custom` 由代理生成状态；`backend` 保留后端状态并覆盖指定字段 |
+| `via.enabled` | 启用 ViaLite Java 后端版本兼容；需要已安装的绝对 `binary_path` |
+| `via.backend_version` | 目标后端版本，`auto` 时由 ViaLite 检测；被后端拦截 Status 时应显式指定 |
 
 规则按文件中的先后顺序匹配，因此 `host = "*"` 的兜底规则必须放在最后。
+
+### ViaLite Java 后端版本兼容
+
+ViaLite 的拓扑是 `Java/Bedrock 玩家 → YvLink（选路）→ ViaLite → Java 后端`。它不替代 Geyser：GeyserLite 负责 Bedrock 到 Java 会话，ViaLite 仅处理进入后端后的 Java 协议差异。生产环境使用本项目的 subprocess 托管模式，避免原生运行时崩溃带走代理；每个真实后端会映射到仅回环可见的入口。
+
+先以 root 安装并校验官方发布物，再在控制台或配置中启用：
+
+```sh
+install -m 0755 deploy/install-vialite.sh /usr/local/lib/mc-proxy/install-vialite.sh
+/usr/local/lib/mc-proxy/install-vialite.sh
+```
+
+启用 ViaLite 时，所有路由的 `proxy_protocol` 必须是 `off`；YvLink 当前不提供 Velocity/Bungee 身份转发，ViaLite 会明确以 `forwarding = none` 启动。客户端无法被 YvLink 解析时，ViaLite 也不能把它变为可接入客户端。
+
+### 自动升级
+
+自动升级器只下载 GitHub Release 的 Ubuntu 24.04 x86_64 安装包，先验证二进制 `--version` 与 Release 标签一致，再原子替换；服务无法健康重启会自动恢复上一份二进制。它不会执行 `git pull`，也不会触碰 `/etc/mc-proxy/config.toml`。
+
+```sh
+install -m 0755 deploy/mc-proxy-update.sh /usr/local/lib/mc-proxy/mc-proxy-update.sh
+install -m 0644 deploy/mc-proxy-update.service /etc/systemd/system/
+install -m 0644 deploy/mc-proxy-update.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now mc-proxy-update.timer
+# 可按需立即检查一次
+systemctl start mc-proxy-update.service
+```
+
+状态写入 `/var/lib/mc-proxy/update-status.json`，可用 `systemctl status mc-proxy-update.service` 或 `journalctl -u mc-proxy-update.service` 排查。
+
+### NotEnoughBandwidth（NEB）
+
+[NotEnoughBandwidth](https://github.com/USS-Shenzhou/NotEnoughBandwidth) 是 Fabric 游戏端/服务端模组，优化的是连接与模组包编码、聚合压缩和区块缓存，不能作为 Rust 代理库直接嵌入 YvLink。应在实际 Fabric 后端与需要其协议的客户端成对安装；若流量经过 Velocity 或本项目的协议兼容层，请先在测试服验证，并使用其兼容模式与黑名单。YvLink 保持对后续模组数据透明转发，不声称替代 NEB。
 
 ## Web 控制台与 API
 
@@ -390,7 +435,7 @@ YvLink (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwa
 
 An embedded web control panel lets operators manage routes, backend pools, status responses, allowlists, health checks, and crossplay settings without manually editing TOML and restarting the service.
 
-Current development version: **v0.13.0**
+Current development version: **v0.14.0**
 
 ## Downloads
 

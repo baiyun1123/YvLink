@@ -260,7 +260,8 @@ async fn connect_route_backend(
     let mut failed_attempts = 0_u64;
     for index in pool.candidate_indices(route.strategy) {
         let backend_addr = pool.address(index);
-        match connect_backend(config, backend_addr).await {
+        let dial_address = config.via_dial_address(backend_addr).await;
+        match connect_backend(config, &dial_address).await {
             Ok((mut backend, latency)) => {
                 if let Err(error) =
                     write_proxy_protocol_header(&mut backend, route.proxy_protocol, addresses).await

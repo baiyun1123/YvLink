@@ -85,7 +85,7 @@ ok</pre>
         <div class="label">成功响应</div><pre>{
   "ok": true,
   "data": {
-    "version": "0.11.0",
+    "version": "0.14.0",
     "uptime_seconds": 3600,
     "totals": {
       "accepted_connections": 1200,
@@ -111,6 +111,7 @@ ok</pre>
       "download_bytes": 524288000
     },
     "proxy_running": true,
+    "via": {"available":true,"enabled":true,"running":true,"managed_backends":2,"error":null},
     "rules": [
       {
         "id": "play",
@@ -171,6 +172,33 @@ ok</pre>
         <div class="label">主动健康字段</div>
         <p><code>health</code> 为 <code>unknown</code>、<code>healthy</code> 或 <code>unhealthy</code>；<code>last_checked_secs_ago</code> 是距最近完成探测的秒数。健康检查总成功/失败数与每后端连续成功/失败次数分别用于运行监控和阈值状态判断。<code>tcp</code> 成功只代表端口可达；<code>minecraft-status</code> 成功表示已完成 Java Handshake、Status JSON 结构校验及 Ping/Pong，但不代表玩家能够登录或模组协商成功。</p>
         <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="via-get" data-search="vialite via Java 协议版本兼容 后端 sidecar 状态">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/via</span><h3>读取 ViaLite 配置与运行状态</h3></div>
+      <div class="endpoint-body">
+        <p>读取受管 ViaLite 的 Java 后端兼容配置和实际 subprocess 状态。ViaLite 位于已选路的 YvLink 与真实后端之间；<code>running=true</code> 才会把后端连接拨到回环翻译入口。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>{"ok":true,"data":{"config":{"enabled":true,"binary_path":"/opt/mc-proxy/vialite/vialite","runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"},"runtime":{"available":true,"enabled":true,"running":true,"managed_backends":2,"error":null}}}</pre>
+        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="via-put" data-search="修改 vialite via Java 协议版本兼容 后端 sidecar">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/via</span><h3>修改 ViaLite 配置</h3></div>
+      <div class="endpoint-body">
+        <p>原子保存 ViaLite 配置，并重建隔离子进程及每个唯一后端的回环入口。运行时启动失败不会删除已保存的配置；<code>runtime.error</code> 会说明原因，代理会保守直连真实后端。</p>
+        <div class="label">请求体参数</div>
+        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
+          <tr><td><code>enabled</code></td><td>布尔</td><td>是否启用 ViaLite 后端侧 Java 协议转换。</td></tr>
+          <tr><td><code>binary_path</code></td><td>字符串/null</td><td>启用时必填，必须为绝对路径；由部署脚本校验下载的 <code>vialite</code> 原生可执行文件。</td></tr>
+          <tr><td><code>runtime_dir</code></td><td>字符串</td><td>临时原生 JSON 配置目录，生产 systemd 默认 <code>/run/mc-proxy/vialite</code>。</td></tr>
+          <tr><td><code>gate_protocol</code></td><td>字符串</td><td>YvLink 到 ViaLite 的协议，通常为 <code>auto</code>。</td></tr>
+          <tr><td><code>backend_version</code></td><td>字符串</td><td>ViaLite 到后端的协议；<code>auto</code> 使用检测，后端屏蔽 Status 时应显式指定。</td></tr>
+        </tbody></table>
+        <div class="label">请求示例</div><pre>{"enabled":true,"binary_path":"/opt/mc-proxy/vialite/vialite","runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"}</pre>
+        <div class="label">错误码</div><p><code>400</code>：路径不是绝对路径、协议标识非法，或存在启用 <code>proxy_protocol</code> 的路由。<code>401</code>：认证失败。</p>
       </div>
     </section>
 
@@ -261,6 +289,7 @@ ok</pre>
   "data": {
     "admin": {"listen":"127.0.0.1:18080"},
     "crossplay": {"enabled":false,"provider":"external","bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online","geyserlite":{"mode":"embedded","library_path":null,"binary_path":null,"offline":false,"motd_line1":"YvLink","motd_line2":"Bedrock via GeyserLite","floodgate_key":null}},
+    "via": {"enabled":false,"binary_path":null,"runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"},
     "settings": {
       "listen": "0.0.0.0:25565",
       "proxy_enabled": true,

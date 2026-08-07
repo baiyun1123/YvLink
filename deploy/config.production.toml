@@ -15,6 +15,13 @@ offline = false
 motd_line1 = "YvLink"
 motd_line2 = "Bedrock via GeyserLite"
 
+[via]
+enabled = false
+# binary_path = "/opt/mc-proxy/vialite/vialite"
+runtime_dir = "/run/mc-proxy/vialite"
+gate_protocol = "auto"
+backend_version = "auto"
+
 [settings]
 listen = "0.0.0.0:25565"
 proxy_enabled = false

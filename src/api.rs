@@ -13,8 +13,9 @@ use serde_json::{Value, json};
 
 use crate::{
     AppConfig, CrossplayConfig, CrossplayStatus, GlobalSettings, RuleConfig, RuntimeManager,
-    crossplay_status,
+    ViaLiteConfig, crossplay_status,
     geyser_lite::{CrossplayRuntime, GeyserLiteRuntimeStatus},
+    via_lite::{ViaLiteRuntime, ViaLiteRuntimeStatus},
 };
 
 #[derive(Clone)]
@@ -23,6 +24,7 @@ pub struct ApiState {
     pub admin_token: Arc<str>,
     pub started_at: Instant,
     pub crossplay_runtime: CrossplayRuntime,
+    pub via_runtime: ViaLiteRuntime,
 }
 
 #[derive(Debug)]
@@ -44,11 +46,18 @@ struct CrossplayView {
     runtime: GeyserLiteRuntimeStatus,
 }
 
+#[derive(Serialize)]
+struct ViaLiteView {
+    config: ViaLiteConfig,
+    runtime: ViaLiteRuntimeStatus,
+}
+
 pub fn api_router(state: ApiState) -> Router {
     Router::new()
         .route("/session", get(session))
         .route("/status", get(status))
         .route("/crossplay", get(get_crossplay).put(update_crossplay))
+        .route("/via", get(get_via).put(update_via))
         .route("/config", get(get_config).put(update_config))
         .route("/rules", get(list_rules).post(create_rule))
         .route("/rules/{id}", put(update_rule).delete(delete_rule))
@@ -88,6 +97,31 @@ async fn update_crossplay(
     }))
 }
 
+async fn get_via(State(state): State<ApiState>) -> Json<ApiResponse<ViaLiteView>> {
+    success(ViaLiteView {
+        config: state.manager.config().await.via,
+        runtime: state.via_runtime.status().await,
+    })
+}
+
+async fn update_via(
+    State(state): State<ApiState>,
+    Json(via): Json<ViaLiteConfig>,
+) -> Result<Json<ApiResponse<ViaLiteView>>, ApiError> {
+    let config = state
+        .manager
+        .update_via(via)
+        .await
+        .map_err(ApiError::bad_request)?;
+    // ViaLite 运行时不与前端代理共享地址空间；配置已原子落盘，运行时失败会在
+    // runtime.error 呈现，保留控制台可用性，且拨号会保守回退到真实后端。
+    let _ = state.via_runtime.apply(&config).await;
+    Ok(success(ViaLiteView {
+        config: config.via,
+        runtime: state.via_runtime.status().await,
+    }))
+}
+
 async fn session() -> Json<ApiResponse<Value>> {
     success(json!({ "authenticated": true }))
 }
@@ -100,6 +134,7 @@ async fn status(State(state): State<ApiState>) -> Json<ApiResponse<Value>> {
         "totals": runtime.totals,
         "proxy_running": runtime.proxy_running,
         "rules": runtime.rules,
+        "via": state.via_runtime.status().await,
     }))
 }
 
@@ -127,12 +162,13 @@ async fn create_rule(
     State(state): State<ApiState>,
     Json(rule): Json<RuleConfig>,
 ) -> Result<(StatusCode, Json<ApiResponse<RuleConfig>>), ApiError> {
-    state
+    let rule = state
         .manager
         .create_rule(rule)
         .await
-        .map(|rule| (StatusCode::CREATED, success(rule)))
-        .map_err(ApiError::bad_request)
+        .map_err(ApiError::bad_request)?;
+    reconcile_via(&state).await;
+    Ok((StatusCode::CREATED, success(rule)))
 }
 
 async fn update_rule(
@@ -140,12 +176,13 @@ async fn update_rule(
     Path(id): Path<String>,
     Json(rule): Json<RuleConfig>,
 ) -> Result<Json<ApiResponse<RuleConfig>>, ApiError> {
-    state
+    let rule = state
         .manager
         .update_rule(&id, rule)
         .await
-        .map(success)
-        .map_err(ApiError::bad_request)
+        .map_err(ApiError::bad_request)?;
+    reconcile_via(&state).await;
+    Ok(success(rule))
 }
 
 async fn delete_rule(
@@ -156,8 +193,14 @@ async fn delete_rule(
         .manager
         .delete_rule(&id)
         .await
-        .map(|()| success(json!({ "deleted": id })))
-        .map_err(ApiError::bad_request)
+        .map_err(ApiError::bad_request)?;
+    reconcile_via(&state).await;
+    Ok(success(json!({ "deleted": id })))
+}
+
+async fn reconcile_via(state: &ApiState) {
+    let config = state.manager.config().await;
+    let _ = state.via_runtime.apply(&config).await;
 }
 
 async fn require_auth(State(state): State<ApiState>, request: Request, next: Next) -> Response {

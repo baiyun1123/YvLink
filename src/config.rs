@@ -22,8 +22,26 @@ const MAX_COPY_BUFFER: usize = 1024 * 1024;
 pub struct AppConfig {
     pub admin: AdminConfig,
     pub crossplay: CrossplayConfig,
+    pub via: ViaLiteConfig,
     pub settings: GlobalSettings,
     pub rules: Vec<RuleConfig>,
+}
+
+/// ViaLite 在代理与 Java 后端之间提供的托管协议兼容层。
+///
+/// 仅支持由本程序管理的 subprocess 模式；它通过回环地址隔离原生运行时。
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct ViaLiteConfig {
+    pub enabled: bool,
+    /// ViaLite 原生可执行文件。启用时必须是绝对路径，避免从不可信 PATH 查找。
+    pub binary_path: Option<String>,
+    /// 运行时 JSON 配置目录；systemd 部署默认使用 /run/mc-proxy/vialite。
+    pub runtime_dir: String,
+    /// YvLink 连接 ViaLite 时使用的 Java 协议，通常保持 auto。
+    pub gate_protocol: String,
+    /// 后端 Java 协议。auto 会交由 ViaLite/ViaProxy 识别。
+    pub backend_version: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -338,6 +356,8 @@ pub struct ForwardConfig {
     pub stats_interval_secs: u64,
     pub(crate) status_cache: Arc<Mutex<HashMap<String, CachedStatus>>>,
     pub(crate) backend_pools: Arc<HashMap<String, Arc<BackendPoolState>>>,
+    /// 原始后端地址到 ViaLite 回环监听地址的动态映射。
+    pub(crate) via_dial_targets: Arc<tokio::sync::RwLock<HashMap<String, String>>>,
 }
 
 impl Default for AppConfig {
@@ -345,8 +365,21 @@ impl Default for AppConfig {
         Self {
             admin: AdminConfig::default(),
             crossplay: CrossplayConfig::default(),
+            via: ViaLiteConfig::default(),
             settings: GlobalSettings::default(),
             rules: vec![RuleConfig::default()],
+        }
+    }
+}
+
+impl Default for ViaLiteConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            binary_path: None,
+            runtime_dir: "/run/mc-proxy/vialite".to_string(),
+            gate_protocol: "auto".to_string(),
+            backend_version: "auto".to_string(),
         }
     }
 }
@@ -489,6 +522,7 @@ impl AppConfig {
     pub fn validate(&self) -> Result<()> {
         self.settings.validate()?;
         self.crossplay.validate()?;
+        self.via.validate()?;
         if !self.admin.listen.ip().is_loopback() {
             bail!("admin.listen 必须监听回环地址，公网访问应通过 Nginx 反向代理");
         }
@@ -500,6 +534,11 @@ impl AppConfig {
         let mut hosts = HashSet::new();
         for rule in &self.rules {
             rule.validate()?;
+            if self.via.enabled && rule.proxy_protocol != ProxyProtocolVersion::Off {
+                bail!(
+                    "启用 via 时 rules.proxy_protocol 必须为 off：ViaLite 接收的是 Minecraft 握手，不接受 PROXY Protocol 头"
+                );
+            }
             if !ids.insert(rule.id.as_str()) {
                 bail!("规则 id 重复: {}", rule.id);
             }
@@ -555,6 +594,40 @@ impl AppConfig {
             .with_context(|| format!("无法写入临时配置 {}", temporary.display()))?;
         fs::rename(&temporary, path)
             .with_context(|| format!("无法原子替换配置 {}", path.display()))?;
+        Ok(())
+    }
+}
+
+impl ViaLiteConfig {
+    pub fn validate(&self) -> Result<()> {
+        if self.runtime_dir.trim().is_empty() {
+            bail!("via.runtime_dir 不能为空");
+        }
+        if self.runtime_dir.len() > 4096 {
+            bail!("via.runtime_dir 过长");
+        }
+        for (name, value) in [
+            ("via.gate_protocol", self.gate_protocol.as_str()),
+            ("via.backend_version", self.backend_version.as_str()),
+        ] {
+            if value.trim().is_empty() || value.len() > 64 || value.chars().any(char::is_whitespace)
+            {
+                bail!("{name} 必须是长度不超过 64 的非空协议版本标识");
+            }
+        }
+        if self.enabled {
+            let path = self
+                .binary_path
+                .as_deref()
+                .map(str::trim)
+                .filter(|path| !path.is_empty())
+                .ok_or_else(|| {
+                    anyhow!("启用 via 时必须设置 via.binary_path（由部署脚本校验和下载 ViaLite）")
+                })?;
+            if !Path::new(path).is_absolute() {
+                bail!("via.binary_path 必须使用绝对路径");
+            }
+        }
         Ok(())
     }
 }
@@ -815,7 +888,16 @@ impl ForwardConfig {
             stats_interval_secs: settings.stats_interval_secs,
             status_cache: Arc::new(Mutex::new(HashMap::new())),
             backend_pools: Arc::new(backend_pools),
+            via_dial_targets: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
+    }
+
+    pub fn with_via_dial_targets(
+        mut self,
+        via_dial_targets: Arc<tokio::sync::RwLock<HashMap<String, String>>>,
+    ) -> Self {
+        self.via_dial_targets = via_dial_targets;
+        self
     }
 
     pub fn connect_timeout(&self) -> Duration {
@@ -838,6 +920,15 @@ impl ForwardConfig {
         self.backend_pools
             .get(route_id)
             .map_or_else(Vec::new, |pool| pool.snapshot())
+    }
+
+    pub(crate) async fn via_dial_address(&self, backend: &str) -> String {
+        self.via_dial_targets
+            .read()
+            .await
+            .get(backend)
+            .cloned()
+            .unwrap_or_else(|| backend.to_string())
     }
 
     pub(crate) fn claim_due_health_probes(&self, limit: usize) -> Vec<HealthProbeTarget> {
@@ -1676,5 +1767,20 @@ auth_type = "online"
         assert!(serialized.contains("provider = \"geyserlite\""));
         let parsed: CrossplayConfig = toml::from_str(&serialized).unwrap();
         assert_eq!(parsed.provider, CrossplayProvider::GeyserLite);
+    }
+
+    #[test]
+    fn via_requires_an_absolute_binary_and_disables_proxy_protocol() {
+        let mut config = AppConfig::default();
+        config.via.enabled = true;
+        assert!(config.validate().is_err());
+
+        config.via.binary_path = Some("vialite".to_string());
+        assert!(config.validate().is_err());
+
+        config.via.binary_path = Some("/opt/mc-proxy/vialite/vialite".to_string());
+        assert!(config.validate().is_ok());
+        config.rules[0].proxy_protocol = ProxyProtocolVersion::V2;
+        assert!(config.validate().is_err());
     }
 }

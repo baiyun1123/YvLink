@@ -6,16 +6,16 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#020617">
   <meta name="description" content="Minecraft Java 域名路由、多后端故障转移与基岩互通控制台">
-  <title>MC Relay Control</title>
+  <title>YvLink Control</title>
   <link rel="stylesheet" href="/assets/styles.css?v=20260730-statusprobe1">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳至主内容</a>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <a class="brand" href="/" aria-label="MC Relay Control 首页">
+      <a class="brand" href="/" aria-label="YvLink Control 首页">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span class="brand-copy"><strong>MC Relay</strong><small>Edge control plane</small></span>
+        <span class="brand-copy"><strong>YvLink</strong><small>Edge control plane</small></span>
       </a>
 
       <div class="sidebar-section-label">工作区</div>
@@ -195,7 +195,7 @@
 
       <section class="page" id="page-crossplay">
         <div class="page-intro">
-          <div><span class="section-index">03 / CROSSPLAY</span><h2>基岩版互通</h2><p>由 Geyser 将 Bedrock UDP 会话翻译为 Java 协议，再进入域名路由。</p></div>
+          <div><span class="section-index">03 / COMPATIBILITY</span><h2>互通与版本兼容</h2><p>Geyser 处理 Bedrock 会话；ViaLite 仅在已选路后兼容 Java 后端版本。</p></div>
           <span class="state-badge off" id="crossplayStateBadge">DISABLED</span>
         </div>
         <div class="crossplay-grid">
@@ -243,6 +243,38 @@
             </section>
             <label class="toggle-field ingress-toggle full"><span><strong>启用互通模式监控</strong><small>启用后控制台会用 RakNet Ping 验证 Geyser 是否真正监听，而不是只显示配置已保存。</small></span><input name="enabled" type="checkbox"><i></i></label>
             <div class="form-actions"><button class="primary-button" type="submit">保存互通配置</button></div>
+          </form>
+        </article>
+        <div class="crossplay-grid via-grid">
+          <article class="panel crossplay-status-panel">
+            <div class="panel-header"><div><p class="panel-kicker">VIALITE SIDECAR</p><h2>后端版本兼容</h2></div><span class="live-label off" id="viaLiveLabel"><i></i><span id="viaHealthLabel">未启用</span></span></div>
+            <dl class="system-list">
+              <div><dt>运行方式</dt><dd>隔离子进程</dd></div>
+              <div><dt>Gate 协议</dt><dd id="viaGateProtocol">--</dd></div>
+              <div><dt>后端协议</dt><dd id="viaBackendVersion">--</dd></div>
+              <div><dt>托管后端</dt><dd id="viaManagedBackends">--</dd></div>
+              <div><dt>运行状态</dt><dd id="viaRuntime">--</dd></div>
+            </dl>
+            <p class="crossplay-message" id="viaMessage" aria-live="polite">启用后会先完成域名选路，再经 ViaLite 连到实际后端。</p>
+          </article>
+          <article class="panel compatibility-panel">
+            <div class="panel-header"><div><p class="panel-kicker">SAFE BOUNDARY</p><h2>版本兼容边界</h2></div></div>
+            <ul class="compatibility-list">
+              <li><strong>后端侧翻译</strong><span>ViaLite 不在客户端前面；客户端必须先能完成 YvLink 的 Java 握手。</span></li>
+              <li><strong>不传 PROXY 头</strong><span>启用后，所有路由的 PROXY Protocol 必须关闭，避免破坏 ViaLite 的 Minecraft 握手。</span></li>
+              <li><strong>独立于 Geyser</strong><span>GeyserLite 负责 Bedrock→Java；ViaLite 只处理 Java→后端的版本差异。</span></li>
+            </ul>
+          </article>
+        </div>
+        <article class="panel settings-panel via-settings-panel">
+          <div class="panel-header"><div><p class="panel-kicker">MANAGED VIALITE</p><h2>ViaLite 配置</h2></div><span class="settings-hint">部署脚本会校验并安装原生运行时</span></div>
+          <form id="viaForm" class="form-grid">
+            <label><span>ViaLite 可执行文件</span><input name="binary_path" placeholder="/opt/mc-proxy/vialite/vialite"><small>仅接受绝对路径；请先完成部署脚本的依赖安装。</small></label>
+            <label><span>运行时目录</span><input name="runtime_dir" placeholder="/run/mc-proxy/vialite" required><small>仅保存受管临时 JSON 配置，重启后自动清理。</small></label>
+            <label><span>YvLink → ViaLite 协议</span><input name="gate_protocol" value="auto" maxlength="64" required><small>通常保持 auto。</small></label>
+            <label><span>ViaLite → 后端协议</span><input name="backend_version" value="auto" maxlength="64" required><small>后端屏蔽 Status 时改为明确版本。</small></label>
+            <label class="toggle-field ingress-toggle full"><span><strong>启用 Java 后端版本兼容</strong><small>保存后按已启用路由重建隔离的回环入口；未成功就绪时代理会安全直连后端并报告错误。</small></span><input name="enabled" type="checkbox"><i></i></label>
+            <div class="form-actions"><button class="primary-button" type="submit">保存 ViaLite 配置</button></div>
           </form>
         </article>
       </section>
@@ -342,7 +374,7 @@
         <svg viewBox="0 0 260 150"><path d="M35 75h75m40 0h75M110 75l20-24 20 24-20 24-20-24Z"/></svg>
       </div>
       <div class="auth-content">
-        <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><p>SECURE CONTROL PLANE</p><h1>MC Relay</h1></div></div>
+        <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><p>SECURE CONTROL PLANE</p><h1>YvLink</h1></div></div>
         <p class="auth-copy">管理 Minecraft Java 单端口域名路由、实时流量与入口参数。</p>
         <form id="loginForm">
           <label><span>管理令牌</span><input id="tokenInput" type="password" autocomplete="current-password" minlength="32" required><small>令牌仅保存在当前浏览器标签页。</small></label>

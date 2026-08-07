@@ -40,6 +40,8 @@ CapabilityBoundingSet=
 AmbientCapabilities=
 RemoveIPC=true
 ReadWritePaths=/etc/mc-proxy
+RuntimeDirectory=mc-proxy
+RuntimeDirectoryMode=0750
 
 [Install]
 WantedBy=multi-user.target

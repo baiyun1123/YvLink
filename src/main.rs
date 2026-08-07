@@ -2,8 +2,8 @@ use std::{env, path::PathBuf, sync::Arc, time::Instant};
 
 use anyhow::{Context, Result, bail};
 use mc_proxy::{
-    AppConfig, CrossplayProvider, RuntimeManager, api::ApiState, geyser_lite::CrossplayRuntime,
-    validate_admin_token, web,
+    AppConfig, CrossplayProvider, RuntimeManager, ViaLiteRuntime, api::ApiState,
+    geyser_lite::CrossplayRuntime, validate_admin_token, web,
 };
 use tokio::net::TcpListener;
 use tracing::{info, warn};
@@ -14,6 +14,7 @@ mc-proxy - Minecraft Java TCP 转发器与管理面板
 
 用法:
   mc-proxy [--config <路径>]
+  mc-proxy --version
   mc-proxy --help
 
 环境变量:
@@ -36,7 +37,14 @@ async fn main() -> Result<()> {
 
     let (config, loaded_path) = AppConfig::load(config_path.as_deref())?;
     let admin_listen = config.admin.listen;
-    let manager = Arc::new(RuntimeManager::new(config.clone(), loaded_path.clone()));
+    let via_runtime = ViaLiteRuntime::new();
+    if let Err(error) = via_runtime.apply(&config).await {
+        warn!(%error, "ViaLite 未能启动，代理将直连后端；请在控制台检查 ViaLite 状态");
+    }
+    let manager = Arc::new(
+        RuntimeManager::new(config.clone(), loaded_path.clone())
+            .with_via_dial_targets(via_runtime.dial_targets()),
+    );
     manager.start().await?;
 
     let crossplay_runtime = CrossplayRuntime::new();
@@ -64,12 +72,14 @@ async fn main() -> Result<()> {
         admin_token: Arc::from(admin_token),
         started_at: Instant::now(),
         crossplay_runtime,
+        via_runtime,
     };
 
     let result = axum::serve(listener, web::router(state.clone()))
         .with_graceful_shutdown(shutdown_signal())
         .await;
     state.crossplay_runtime.stop().await;
+    state.via_runtime.stop().await;
     manager.shutdown().await;
     result.context("管理端服务异常退出")
 }
@@ -80,6 +90,10 @@ fn parse_args() -> Result<Option<PathBuf>> {
 
     while let Some(argument) = args.next() {
         match argument.to_str() {
+            Some("-V" | "--version") => {
+                println!("{}", env!("CARGO_PKG_VERSION"));
+                std::process::exit(0);
+            }
             Some("-h" | "--help") => {
                 print!("{HELP}");
                 std::process::exit(0);

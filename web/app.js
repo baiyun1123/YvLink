@@ -6,6 +6,7 @@
     status: null,
     config: null,
     crossplay: null,
+    via: null,
     lastTraffic: null,
     samples: [],
     chartPaused: false,
@@ -58,9 +59,12 @@
       state.config = await api("/config");
       renderSettings();
       renderCrossplayRouteOptions();
-      await Promise.all([pollStatus(), pollCrossplay()]);
+      await Promise.all([pollStatus(), pollCrossplay(), pollVia()]);
       if (!state.pollTimer) state.pollTimer = setInterval(pollStatus, 2000);
-      if (!state.crossplayTimer) state.crossplayTimer = setInterval(pollCrossplay, 10000);
+      if (!state.crossplayTimer) state.crossplayTimer = setInterval(() => {
+        pollCrossplay();
+        pollVia();
+      }, 10000);
     } catch (error) {
       if (!$("#authScreen").classList.contains("hidden")) return;
       toast(error.message, true);
@@ -90,6 +94,15 @@
         $("#crossplayMessage").textContent = error.message;
         $("#crossplayMessage").className = "crossplay-message error";
       }
+    }
+  }
+
+  async function pollVia() {
+    try {
+      state.via = await api("/via");
+      renderVia();
+    } catch (error) {
+      if (!error.message.includes("令牌")) toast(error.message, true);
     }
   }
 
@@ -305,6 +318,28 @@
     syncCrossplayFields();
   }
 
+  function renderVia() {
+    if (!state.via) return;
+    const { config, runtime } = state.via;
+    const form = $("#viaForm");
+    form.elements.enabled.checked = config.enabled;
+    form.elements.binary_path.value = config.binary_path || "";
+    form.elements.runtime_dir.value = config.runtime_dir;
+    form.elements.gate_protocol.value = config.gate_protocol;
+    form.elements.backend_version.value = config.backend_version;
+    $("#viaGateProtocol").textContent = config.gate_protocol;
+    $("#viaBackendVersion").textContent = config.backend_version;
+    $("#viaManagedBackends").textContent = formatNumber(runtime.managed_backends);
+    $("#viaRuntime").textContent = runtime.running ? "托管中" : runtime.error ? "启动失败" : "已停止";
+    $("#viaLiveLabel").classList.toggle("off", !runtime.running);
+    $("#viaHealthLabel").textContent = runtime.running ? "运行中" : config.enabled ? "等待 ViaLite" : "未启用";
+    const message = $("#viaMessage");
+    message.textContent = runtime.running
+      ? `已为 ${runtime.managed_backends} 个唯一后端建立回环翻译入口。`
+      : runtime.error || "未启用；YvLink 会直接连接实际后端。";
+    message.className = `crossplay-message${runtime.error ? " error" : runtime.running ? " success" : ""}`;
+  }
+
   function syncCrossplayFields() {
     const form = $("#crossplayForm");
     const provider = form.elements.provider?.value;
@@ -383,7 +418,7 @@
       form.elements.status_mode.value = "custom";
       form.elements.status_cache_ttl_secs.value = 10;
       form.elements.status_motd.value = "§aMinecraft Server";
-      form.elements.status_version_name.value = "MC Relay";
+      form.elements.status_version_name.value = "YvLink";
       form.elements.status_protocol.value = "";
       form.elements.status_online.value = 0;
       form.elements.status_max.value = 100;
@@ -574,6 +609,29 @@
     }
   }
 
+  async function saveVia(form) {
+    const submit = form.querySelector('[type="submit"]');
+    const originalLabel = submit.textContent;
+    submit.disabled = true;
+    submit.textContent = "正在重建…";
+    const payload = {
+      enabled: form.elements.enabled.checked,
+      binary_path: form.elements.binary_path.value.trim() || null,
+      runtime_dir: form.elements.runtime_dir.value.trim(),
+      gate_protocol: form.elements.gate_protocol.value.trim(),
+      backend_version: form.elements.backend_version.value.trim(),
+    };
+    try {
+      state.via = await api("/via", { method: "PUT", body: JSON.stringify(payload) });
+      state.config = await api("/config");
+      renderVia();
+      toast(state.via.runtime.running ? "ViaLite 已就绪" : "配置已保存，请检查 ViaLite 状态");
+    } finally {
+      submit.disabled = false;
+      submit.textContent = originalLabel;
+    }
+  }
+
   function navigate(page) {
     $$(".nav-item").forEach(item => {
       const active = item.dataset.page === page;
@@ -729,6 +787,7 @@
     state.status = null;
     state.config = null;
     state.crossplay = null;
+    state.via = null;
     showAuth();
   });
   $$(".nav-item").forEach(item => item.addEventListener("click", () => navigate(item.dataset.page)));
@@ -765,6 +824,10 @@
   $("#crossplayForm").addEventListener("submit", async event => {
     event.preventDefault();
     try { await saveCrossplay(event.currentTarget); } catch (error) { toast(error.message, true); }
+  });
+  $("#viaForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    try { await saveVia(event.currentTarget); } catch (error) { toast(error.message, true); }
   });
   for (const name of ["provider", "auth_type", "geyser_mode"]) {
     $("#crossplayForm").elements[name].addEventListener("change", syncCrossplayFields);

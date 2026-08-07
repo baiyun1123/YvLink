@@ -1,0 +1,12 @@
+[Unit]
+Description=Check YvLink releases every day
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=30m
+Persistent=true
+Unit=mc-proxy-update.service
+
+[Install]
+WantedBy=timers.target
+
