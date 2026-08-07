@@ -2,6 +2,45 @@
 
 ## 任务标题
 
+v0.14.0：托管 ViaLite 多版本兼容、自动安全升级、Floodgate/NotEnoughBandwidth 使用边界与控制台优化。
+
+## 完成时间
+
+2026-08-08 01:55（Asia/Shanghai）
+
+## 变更内容
+
+- 新增 `[via]` 受管 ViaLite 配置与 `src/via_lite.rs` 运行时：为每个唯一真实后端生成 loopback 监听，将 Java 客户端链路组织为“客户端 → YvLink → ViaLite → 后端”；默认关闭，启动失败自动回退为 YvLink 直连。
+- 新增受鉴权的 `GET/PUT /api/v1/via`，状态接口返回 ViaLite 运行态；路由增删改后自动重建受管后端。`docs/api.html` 已同步为可检索、移动端适配的中文接口文档。
+- 配置校验禁止 ViaLite 与 PROXY protocol 同时启用；使用原生 ViaLite `forwarding = none`，不伪造 Velocity/Bungee 身份转发。新增配置和后端映射单元测试。
+- 控制台改为 YvLink 品牌，互通页增加 ViaLite 状态、配置表单和兼容性边界说明；加入减少动态效果偏好支持，更新静态资源缓存版本。
+- 新增校验 ViaLite 官方 `checksums.txt` 的安装脚本，以及每天执行的 systemd 自动更新服务/定时器；更新器先验证候选二进制和服务健康，再原子替换并支持回滚，且明确拒绝降级。
+- 说明 Floodgate 仅在实际 Java 后端也安装并配置同一密钥时可用；NotEnoughBandwidth 是 Fabric 客户端/服务端 Mod，不能嵌进 TCP 代理，需在自有 Fabric 后端和客户端部署。
+- 目标服务器完成 Rust 1.88 release 编译、部署和验收：`yvlink.service` 运行 v0.14.0，`/healthz` 正常，ViaLite v0.3.0 已校验安装但保持关闭，`yvlink-update.timer` 已启用；更新器实测识别 GitHub v0.13.0 并拒绝将当前 v0.14.0 降级。部署前备份位于服务器 `/root/yvlink-backups/20260808-015410/`。
+
+## 关键决策
+
+- 未在未知真实后端协议版本、插件和转发方式的情况下直接打开 ViaLite；管理员从控制台填写 `backend_version` 后启用，避免把生产玩家流量送进未经验证的协议转换层。
+- ViaLite runtime 目录使用 systemd `RuntimeDirectory=yvlink`，以最小写权限满足非 root 的 `yvlink` 服务账户；其安装目录可执行但仅 root 写入。
+- 自动更新固定只接受 GitHub Release 中的 Ubuntu 24.04 x86_64 包；当前服务器由本地 release 构建升级，待 v0.14.0 Release 资产出现后定时器将识别为同版，无需重复部署。
+
+## 风险与待办
+
+- 每条 ViaLite 后端的 `backend_version`、实际游戏版本、Fabric/Forge Mod 组合仍需用自有测试服和客户端做登录、移动、背包、传送与断线重连验收；不要把第三方公共服务器当作兼容性测试目标。
+- 现有 embedded GeyserLite 在 Java 25 会输出 Log4j/GraalVM 告警，但服务 API 显示 UDP 互通运行中；生产如需更强隔离，优先评估 GeyserLite subprocess。
+- v0.14.0 GitHub Release 标签和安装包仍需由 CI 生成；Release 出现前，定时器会安全跳过较旧的 v0.13.0。
+
+## 关联文件
+
+- `src/via_lite.rs`、`src/config.rs`、`src/proxy.rs`、`src/manager.rs`、`src/api.rs`、`src/main.rs`
+- `web/index.html`、`web/app.js`、`web/styles.css`
+- `deploy/install-vialite.sh`、`deploy/mc-proxy-update.sh`、`deploy/mc-proxy-update.service`、`deploy/mc-proxy-update.timer`
+- `README.md`、`MODDED_COMPATIBILITY.md`、`docs/api.html`、`code.md`
+
+---
+
+## 任务标题
+
 为每条域名路由增加独立的 Bedrock Crossplay 允许开关。
 
 ## 完成时间
