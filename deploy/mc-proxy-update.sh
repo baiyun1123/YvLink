@@ -27,6 +27,27 @@ PY
   mv "$status_path.tmp" "$status_path"
 }
 
+# Exit 0 only when the GitHub release is newer than the installed stable
+# x.y.z version. This prevents a delayed or manually selected older release
+# from downgrading a server that was compiled or updated more recently.
+release_is_newer() {
+  python3 - "$1" "$2" <<'PY'
+import re, sys
+
+def parse(value):
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", value)
+    if not match:
+        raise ValueError(value)
+    return tuple(map(int, match.groups()))
+
+try:
+    installed, available = parse(sys.argv[1]), parse(sys.argv[2])
+except ValueError:
+    raise SystemExit(2)
+raise SystemExit(0 if available > installed else 1)
+PY
+}
+
 if ! systemctl is-active --quiet mc-proxy.service; then
   write_status 'deferred' 'mc-proxy 服务未运行，跳过自动升级。'
   exit 0
@@ -49,6 +70,18 @@ expected_version=${release_tag#v}
 if [ "$current_version" = "$expected_version" ]; then
   write_status 'up-to-date' "当前已是 $release_tag。"
   exit 0
+fi
+if release_is_newer "$current_version" "$expected_version"; then
+  :
+else
+  compare_result=$?
+  if [ "$compare_result" -eq 1 ]; then
+    write_status 'up-to-date' "当前版本 $current_version 不低于 GitHub 的 $release_tag，跳过降级。"
+    exit 0
+  else
+    write_status 'failed' "无法比较当前版本 $current_version 与 GitHub 版本 $release_tag。"
+    exit 1
+  fi
 fi
 
 write_status 'downloading' "正在下载 $release_tag。"

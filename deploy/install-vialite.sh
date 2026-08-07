@@ -36,6 +36,9 @@ checksums_url=$(sed -n '3p' "$work_dir/urls.txt")
 curl --fail --silent --show-error --location "$binary_url" >"$work_dir/$asset_name"
 curl --fail --silent --show-error --location "$checksums_url" >"$work_dir/checksums.txt"
 (cd "$work_dir" && grep "  $asset_name$" checksums.txt | sha256sum -c -)
-install -d -m 0750 "$target_dir"
+# ViaLite is executed by the non-root proxy service, so the directory needs
+# to be traversable by that service account. The binary itself stays owned by
+# root and is never written by the running proxy.
+install -d -m 0755 "$target_dir"
 install -m 0755 "$work_dir/$asset_name" "$target_dir/vialite"
 printf 'ViaLite %s 已安装到 %s\n' "$version" "$target_dir/vialite"
