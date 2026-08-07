@@ -31,6 +31,7 @@
       <a href="#health">健康检查</a>
       <a href="#session">认证检查</a>
       <a href="#status">运行状态</a>
+      <a href="#updates">自动更新状态</a>
       <a href="#crossplay-get">读取互通状态</a>
       <a href="#crossplay-put">修改互通配置</a>
       <a href="#config-get">读取配置</a>
@@ -46,7 +47,7 @@
     <header class="hero">
       <h1>管理 API 文档</h1>
       <p>用于查询 Minecraft Java TCP 转发状态、读取实时流量指标，以及在线管理转发规则和全局参数。管理接口默认只通过同源 HTTPS 页面访问。</p>
-      <div class="meta"><span class="pill">Base URL: /api/v1</span><span class="pill">JSON</span><span class="pill">Bearer Token</span><span class="pill">v0.11.0</span></div>
+      <div class="meta"><span class="pill">Base URL: /api/v1</span><span class="pill">JSON</span><span class="pill">Bearer Token</span><span class="pill">v0.15.0</span></div>
     </header>
 
     <section id="auth" data-search="认证 bearer token authorization 管理令牌">
@@ -85,7 +86,7 @@ ok</pre>
         <div class="label">成功响应</div><pre>{
   "ok": true,
   "data": {
-    "version": "0.14.0",
+    "version": "0.15.0",
     "uptime_seconds": 3600,
     "totals": {
       "accepted_connections": 1200,
@@ -172,6 +173,22 @@ ok</pre>
         <div class="label">主动健康字段</div>
         <p><code>health</code> 为 <code>unknown</code>、<code>healthy</code> 或 <code>unhealthy</code>；<code>last_checked_secs_ago</code> 是距最近完成探测的秒数。健康检查总成功/失败数与每后端连续成功/失败次数分别用于运行监控和阈值状态判断。<code>tcp</code> 成功只代表端口可达；<code>minecraft-status</code> 成功表示已完成 Java Handshake、Status JSON 结构校验及 Ping/Pong，但不代表玩家能够登录或模组协商成功。</p>
         <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+      </div>
+    </section>
+
+    <section class="endpoint" id="updates" data-search="自动更新 update systemd release 下载 回滚 状态">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/updates</span><h3>读取自动更新状态</h3></div>
+      <div class="endpoint-body">
+        <p>读取 systemd 自动更新器最后写入的状态文件，不会从管理 API 触发下载、重启或升级。控制台据此在更新下载、完成、失败或回滚时显示提示弹窗。</p>
+        <div class="label">请求参数</div><p>无。</p>
+        <div class="label">成功响应</div><pre>{"ok":true,"data":{"current_version":"0.15.0","status":{"state":"up-to-date","message":"当前已是 v0.15.0。"}}}</pre>
+        <div class="label">状态字段</div>
+        <table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody>
+          <tr><td><code>current_version</code></td><td>当前正在运行的 YvLink 版本。</td></tr>
+          <tr><td><code>status.state</code></td><td><code>up-to-date</code>、<code>downloading</code>、<code>updated</code>、<code>deferred</code>、<code>failed</code>、<code>rolled-back</code> 或 <code>unknown</code>。</td></tr>
+          <tr><td><code>status.message</code></td><td>可直接展示给管理员的最近一次更新说明。</td></tr>
+        </tbody></table>
+        <div class="label">错误码</div><p><code>401</code>：认证失败。更新器尚未执行或状态文件不可读时仍返回 <code>200</code>，并以 <code>unknown</code> 说明原因。</p>
       </div>
     </section>
 

@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#020617">
   <meta name="description" content="Minecraft Java 域名路由、多后端故障转移与基岩互通控制台">
   <title>YvLink Control</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260808-vialite1">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260808-settings1">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳至主内容</a>
@@ -68,6 +68,9 @@
           </div>
         </div>
         <div class="topbar-status">
+          <button class="update-chip" id="updateBadge" type="button" hidden aria-label="查看自动更新状态">
+            <span class="status-dot" id="updateBadgeDot"></span><span id="updateBadgeText">自动更新</span>
+          </button>
           <div class="connection-pill"><span class="status-dot" id="statusDot"></span><strong id="connectionState">正在连接</strong></div>
           <small id="lastUpdated">尚未同步</small>
         </div>
@@ -266,23 +269,40 @@
             </ul>
           </article>
         </div>
-        <article class="panel settings-panel via-settings-panel">
-          <div class="panel-header"><div><p class="panel-kicker">MANAGED VIALITE</p><h2>ViaLite 配置</h2></div><span class="settings-hint">部署脚本会校验并安装原生运行时</span></div>
-          <form id="viaForm" class="form-grid">
-            <label><span>ViaLite 可执行文件</span><input name="binary_path" placeholder="/opt/mc-proxy/vialite/vialite"><small>仅接受绝对路径；请先完成部署脚本的依赖安装。</small></label>
-            <label><span>运行时目录</span><input name="runtime_dir" placeholder="/run/mc-proxy/vialite" required><small>仅保存受管临时 JSON 配置，重启后自动清理。</small></label>
-            <label><span>YvLink → ViaLite 协议</span><input name="gate_protocol" value="auto" maxlength="64" required><small>通常保持 auto。</small></label>
-            <label><span>ViaLite → 后端协议</span><input name="backend_version" value="auto" maxlength="64" required><small>后端屏蔽 Status 时改为明确版本。</small></label>
-            <label class="toggle-field ingress-toggle full"><span><strong>启用 Java 后端版本兼容</strong><small>保存后按已启用路由重建隔离的回环入口；未成功就绪时代理会安全直连后端并报告错误。</small></span><input name="enabled" type="checkbox"><i></i></label>
-            <div class="form-actions"><button class="primary-button" type="submit">保存 ViaLite 配置</button></div>
-          </form>
-        </article>
       </section>
 
       <section class="page" id="page-settings">
         <div class="page-intro">
-          <div><span class="section-index">04 / INGRESS</span><h2>入口配置</h2><p>这些参数作用于唯一的 Minecraft Java 监听入口。</p></div>
+          <div><span class="section-index">04 / SETTINGS</span><h2>设置与优化</h2><p>集中管理入口性能、版本兼容与自动更新状态。</p></div>
         </div>
+        <div class="settings-summary-grid">
+          <article class="panel update-panel">
+            <div class="panel-header"><div><p class="panel-kicker">SAFE AUTO UPDATE</p><h2>自动更新</h2></div><span class="state-badge off" id="updateStateBadge">检查中</span></div>
+            <div class="update-status-body">
+              <strong id="updateCurrentVersion">当前版本 --</strong>
+              <p id="updateMessage" aria-live="polite">正在读取更新器状态…</p>
+              <div class="update-actions"><button class="secondary-button" id="updateRefreshButton" type="button">刷新状态</button><span>每日由 systemd 定时检查 GitHub Release</span></div>
+            </div>
+          </article>
+          <article class="panel optimization-panel">
+            <div class="panel-header"><div><p class="panel-kicker">NETWORK PATH</p><h2>网络包优化</h2></div></div>
+            <ul class="compatibility-list">
+              <li><strong>YvLink 入口优化</strong><span>下方的 TCP_NODELAY、复制缓冲区、Socket 缓冲区和 Backlog 会立即影响代理数据路径。</span></li>
+              <li><strong>NotEnoughBandwidth</strong><span>它是 Fabric 客户端/服务端 Mod，不是代理开关；请在自有 Fabric 后端与客户端同时部署，YvLink 会保持数据透传。</span></li>
+            </ul>
+          </article>
+        </div>
+        <article class="panel settings-panel via-settings-panel">
+          <div class="panel-header"><div><p class="panel-kicker">MANAGED VIALITE</p><h2>Java 后端版本兼容</h2></div><span class="settings-hint">部署脚本已校验安装原生运行时</span></div>
+          <form id="viaForm" class="form-grid">
+            <label><span>ViaLite 可执行文件</span><input name="binary_path" placeholder="/opt/mc-proxy/vialite/vialite"><small>仅接受绝对路径；当前服务器已预置该运行时。</small></label>
+            <label><span>运行时目录</span><input name="runtime_dir" placeholder="/run/mc-proxy/vialite" required><small>仅保存受管临时 JSON 配置，重启后自动清理。</small></label>
+            <label><span>YvLink → ViaLite 协议</span><input name="gate_protocol" value="auto" maxlength="64" required><small>通常保持 auto。</small></label>
+            <label><span>ViaLite → 后端协议</span><input name="backend_version" value="auto" maxlength="64" required><small>后端屏蔽 Status 时改为明确版本。</small></label>
+            <label class="toggle-field ingress-toggle full"><span><strong>启用 Java 后端版本兼容</strong><small>保存后按已启用路由重建隔离回环入口；未成功就绪时代理会安全直连后端并报告错误。</small></span><input name="enabled" type="checkbox"><i></i></label>
+            <div class="form-actions"><button class="primary-button" type="submit">保存 ViaLite 配置</button></div>
+          </form>
+        </article>
         <article class="panel settings-panel">
           <div class="panel-header"><div><p class="panel-kicker">GLOBAL SETTINGS</p><h2>连接与性能参数</h2></div><span class="settings-hint">保存后立即应用</span></div>
           <form id="settingsForm" class="form-grid">
@@ -366,6 +386,14 @@
     </section>
   </div>
 
+  <div class="modal-backdrop update-notice" id="updateNotice" hidden>
+    <section class="modal update-notice-card" role="dialog" aria-modal="true" aria-labelledby="updateNoticeTitle" aria-describedby="updateNoticeMessage">
+      <div class="modal-header"><div><p class="panel-kicker">AUTO UPDATE</p><h2 id="updateNoticeTitle">自动更新状态</h2></div><button class="icon-button" id="closeUpdateNotice" type="button" aria-label="关闭自动更新提示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <p class="update-notice-message" id="updateNoticeMessage"></p>
+      <div class="form-actions"><button class="secondary-button" id="dismissUpdateNotice" type="button">知道了</button><button class="primary-button" id="openUpdateSettings" type="button">查看更新设置</button></div>
+    </section>
+  </div>
+
   <div class="auth-screen" id="authScreen">
     <section class="auth-card">
       <div class="auth-visual" aria-hidden="true">
@@ -377,7 +405,7 @@
         <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><p>SECURE CONTROL PLANE</p><h1>YvLink</h1></div></div>
         <p class="auth-copy">管理 Minecraft Java 单端口域名路由、实时流量与入口参数。</p>
         <form id="loginForm">
-          <label><span>管理令牌</span><input id="tokenInput" type="password" autocomplete="current-password" minlength="32" required><small>令牌仅保存在当前浏览器标签页。</small></label>
+          <label><span>管理令牌</span><input id="tokenInput" type="password" autocomplete="current-password" minlength="32" required><small>登录后会保存在此浏览器，刷新页面无需重复输入；点击“退出登录”立即清除。</small></label>
           <p class="form-error" id="loginError" aria-live="polite"></p>
           <button class="primary-button wide" type="submit">进入控制台</button>
         </form>
@@ -387,6 +415,6 @@
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
-  <script src="/assets/app.js?v=20260808-vialite1" defer></script>
+  <script src="/assets/app.js?v=20260808-settings1" defer></script>
 </body>
 </html>

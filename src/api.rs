@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use axum::{
     Json, Router,
@@ -8,7 +8,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, put},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::{
@@ -25,6 +25,8 @@ pub struct ApiState {
     pub started_at: Instant,
     pub crossplay_runtime: CrossplayRuntime,
     pub via_runtime: ViaLiteRuntime,
+    /// systemd 更新器写入的只读状态文件；管理 API 不执行更新命令。
+    pub update_status_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -52,17 +54,51 @@ struct ViaLiteView {
     runtime: ViaLiteRuntimeStatus,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct UpdateStatusFile {
+    state: String,
+    message: String,
+}
+
+#[derive(Serialize)]
+struct UpdateView {
+    current_version: &'static str,
+    status: UpdateStatusFile,
+}
+
 pub fn api_router(state: ApiState) -> Router {
     Router::new()
         .route("/session", get(session))
         .route("/status", get(status))
         .route("/crossplay", get(get_crossplay).put(update_crossplay))
         .route("/via", get(get_via).put(update_via))
+        .route("/updates", get(get_updates))
         .route("/config", get(get_config).put(update_config))
         .route("/rules", get(list_rules).post(create_rule))
         .route("/rules/{id}", put(update_rule).delete(delete_rule))
         .layer(from_fn_with_state(state.clone(), require_auth))
         .with_state(state)
+}
+
+async fn get_updates(State(state): State<ApiState>) -> Json<ApiResponse<UpdateView>> {
+    let status = match tokio::fs::read_to_string(&state.update_status_path).await {
+        Ok(contents) => serde_json::from_str(&contents).unwrap_or_else(|_| UpdateStatusFile {
+            state: "unknown".to_string(),
+            message: "自动更新状态文件格式无效；请检查更新服务日志。".to_string(),
+        }),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => UpdateStatusFile {
+            state: "unknown".to_string(),
+            message: "尚未收到自动更新器的状态；定时任务首次执行后会显示结果。".to_string(),
+        },
+        Err(_) => UpdateStatusFile {
+            state: "unknown".to_string(),
+            message: "暂时无法读取自动更新状态；请检查服务文件权限。".to_string(),
+        },
+    };
+    success(UpdateView {
+        current_version: env!("CARGO_PKG_VERSION"),
+        status,
+    })
 }
 
 async fn get_crossplay(State(state): State<ApiState>) -> Json<ApiResponse<CrossplayView>> {

@@ -28,7 +28,7 @@ YvLink（程序包名 `mc-proxy`）是一款使用 Rust 与 Tokio 构建的高�
 
 项目同时提供内置 Web 管理控制台，可在线管理路由、后端池、状态响应、白名单、健康检查和跨平台互通配置，无需手工修改 TOML 后重启服务。
 
-当前开发版本：**v0.14.0**
+当前开发版本：**v0.15.0**
 
 ## 下载
 
@@ -435,7 +435,7 @@ YvLink (package name: `mc-proxy`) is a high-performance Minecraft Java TCP forwa
 
 An embedded web control panel lets operators manage routes, backend pools, status responses, allowlists, health checks, and crossplay settings without manually editing TOML and restarting the service.
 
-Current development version: **v0.14.0**
+Current development version: **v0.15.0**
 
 ## Downloads
 

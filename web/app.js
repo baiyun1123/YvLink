@@ -1,20 +1,33 @@
 (() => {
   "use strict";
 
+  const TOKEN_STORAGE_KEY = "yvlink_admin_token";
+  const LEGACY_TOKEN_STORAGE_KEY = "mc_proxy_admin_token";
+
   const state = {
-    token: sessionStorage.getItem("mc_proxy_admin_token") || "",
+    token: localStorage.getItem(TOKEN_STORAGE_KEY) || sessionStorage.getItem(LEGACY_TOKEN_STORAGE_KEY) || "",
     status: null,
     config: null,
     crossplay: null,
     via: null,
+    updates: null,
     lastTraffic: null,
     samples: [],
     chartPaused: false,
     pollTimer: null,
     crossplayTimer: null,
+    updateTimer: null,
+    updateNoticeState: null,
     editingRuleId: null,
     modalReturnFocus: null,
   };
+
+  // v0.14 使用 sessionStorage；升级后把同一浏览器标签页里的既有登录迁移为
+  // localStorage，避免刷新、恢复标签页或重新打开同源控制台时重复输入令牌。
+  if (state.token && !localStorage.getItem(TOKEN_STORAGE_KEY)) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, state.token);
+    sessionStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+  }
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -26,6 +39,7 @@
     const response = await fetch(`/api/v1${path}`, { ...options, headers });
     const payload = await response.json().catch(() => ({ ok: false, error: { message: `HTTP ${response.status}` } }));
     if (response.status === 401) {
+      clearStoredToken();
       showAuth();
       throw new Error("管理令牌无效或已失效");
     }
@@ -36,8 +50,10 @@
   function showAuth() {
     clearInterval(state.pollTimer);
     clearInterval(state.crossplayTimer);
+    clearInterval(state.updateTimer);
     state.pollTimer = null;
     state.crossplayTimer = null;
+    state.updateTimer = null;
     $("#authScreen").classList.remove("hidden");
     $("#tokenInput").focus();
   }
@@ -49,7 +65,9 @@
   async function login(token) {
     state.token = token.trim();
     await api("/session");
-    sessionStorage.setItem("mc_proxy_admin_token", state.token);
+    localStorage.setItem(TOKEN_STORAGE_KEY, state.token);
+    sessionStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+    $("#tokenInput").value = "";
     hideAuth();
     await bootstrap();
   }
@@ -59,12 +77,13 @@
       state.config = await api("/config");
       renderSettings();
       renderCrossplayRouteOptions();
-      await Promise.all([pollStatus(), pollCrossplay(), pollVia()]);
+      await Promise.all([pollStatus(), pollCrossplay(), pollVia(), pollUpdates()]);
       if (!state.pollTimer) state.pollTimer = setInterval(pollStatus, 2000);
       if (!state.crossplayTimer) state.crossplayTimer = setInterval(() => {
         pollCrossplay();
         pollVia();
       }, 10000);
+      if (!state.updateTimer) state.updateTimer = setInterval(pollUpdates, 30000);
     } catch (error) {
       if (!$("#authScreen").classList.contains("hidden")) return;
       toast(error.message, true);
@@ -104,6 +123,66 @@
     } catch (error) {
       if (!error.message.includes("令牌")) toast(error.message, true);
     }
+  }
+
+  async function pollUpdates() {
+    try {
+      state.updates = await api("/updates");
+      renderUpdates();
+    } catch (error) {
+      if (!error.message.includes("令牌")) toast(error.message, true);
+    }
+  }
+
+  function updateStateMeta(value) {
+    return ({
+      "up-to-date": { label: "已是最新", tone: "online" },
+      downloading: { label: "正在更新", tone: "pending" },
+      updated: { label: "更新完成", tone: "online" },
+      deferred: { label: "等待服务", tone: "pending" },
+      failed: { label: "更新失败", tone: "error" },
+      "rolled-back": { label: "已回滚", tone: "error" },
+      unknown: { label: "状态未知", tone: "pending" },
+    })[value] || { label: value || "状态未知", tone: "pending" };
+  }
+
+  function renderUpdates() {
+    if (!state.updates) return;
+    const { current_version: version, status } = state.updates;
+    const meta = updateStateMeta(status.state);
+    $("#updateCurrentVersion").textContent = `当前版本 v${version}`;
+    $("#updateMessage").textContent = status.message;
+    const badge = $("#updateStateBadge");
+    badge.textContent = meta.label;
+    badge.className = `state-badge${meta.tone === "online" ? "" : " off"}${meta.tone === "error" ? " error" : ""}`;
+    const topBadge = $("#updateBadge");
+    topBadge.hidden = false;
+    topBadge.className = `update-chip ${meta.tone}`;
+    $("#updateBadgeDot").className = `status-dot ${meta.tone === "online" ? "online" : meta.tone === "error" ? "offline" : ""}`;
+    $("#updateBadgeText").textContent = meta.label;
+
+    if (["downloading", "updated", "failed", "rolled-back"].includes(status.state)
+      && state.updateNoticeState !== status.state) {
+      state.updateNoticeState = status.state;
+      showUpdateNotice(meta.label, status.message);
+    }
+  }
+
+  function showUpdateNotice(label, message) {
+    $("#updateNoticeTitle").textContent = label;
+    $("#updateNoticeMessage").textContent = message;
+    $("#updateNotice").hidden = false;
+    $("#closeUpdateNotice").focus();
+  }
+
+  function closeUpdateNotice() {
+    $("#updateNotice").hidden = true;
+    $("#updateBadge").focus();
+  }
+
+  function clearStoredToken() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
   }
 
   function updateTraffic(totals) {
@@ -782,12 +861,13 @@
     finally { submit.disabled = false; submit.textContent = originalLabel; }
   });
   $("#logoutButton").addEventListener("click", () => {
-    sessionStorage.removeItem("mc_proxy_admin_token");
+    clearStoredToken();
     state.token = "";
     state.status = null;
     state.config = null;
     state.crossplay = null;
     state.via = null;
+    state.updates = null;
     showAuth();
   });
   $$(".nav-item").forEach(item => item.addEventListener("click", () => navigate(item.dataset.page)));
@@ -797,6 +877,21 @@
     $("#mobileMenu").setAttribute("aria-expanded", String(open));
   });
   $("#chartToggle").addEventListener("click", toggleChart);
+  $("#updateRefreshButton").addEventListener("click", async event => {
+    const button = event.currentTarget;
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = "正在刷新…";
+    try { await pollUpdates(); }
+    finally { button.disabled = false; button.textContent = label; }
+  });
+  $("#updateBadge").addEventListener("click", () => navigate("settings"));
+  $("#closeUpdateNotice").addEventListener("click", closeUpdateNotice);
+  $("#dismissUpdateNotice").addEventListener("click", closeUpdateNotice);
+  $("#openUpdateSettings").addEventListener("click", () => {
+    closeUpdateNotice();
+    navigate("settings");
+  });
   $("#addRuleButton").addEventListener("click", () => openRuleModal());
   $$("[data-close-modal]").forEach(item => item.addEventListener("click", closeRuleModal));
   $("#ruleModal").addEventListener("click", event => { if (event.target === event.currentTarget) closeRuleModal(); });
@@ -844,6 +939,7 @@
   });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !$("#ruleModal").hidden) closeRuleModal();
+    if (event.key === "Escape" && !$("#updateNotice").hidden) closeUpdateNotice();
     if (event.key === "Escape" && $("#sidebar").classList.contains("open")) {
       $("#sidebar").classList.remove("open");
       $("#mobileMenu").setAttribute("aria-expanded", "false");

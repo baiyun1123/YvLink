@@ -19,6 +19,7 @@ mc-proxy - Minecraft Java TCP 转发器与管理面板
 
 环境变量:
   MC_PROXY_ADMIN_TOKEN  必填，至少 32 个字符，用于管理 API 登录
+  MC_PROXY_UPDATE_STATUS_PATH  可选，自动更新器状态 JSON 路径
   RUST_LOG              可选，例如 mc_proxy=debug
 
 配置:
@@ -34,6 +35,9 @@ async fn main() -> Result<()> {
     let admin_token =
         env::var("MC_PROXY_ADMIN_TOKEN").context("缺少 MC_PROXY_ADMIN_TOKEN 环境变量")?;
     validate_admin_token(&admin_token)?;
+    let update_status_path = env::var_os("MC_PROXY_UPDATE_STATUS_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/var/lib/mc-proxy/update-status.json"));
 
     let (config, loaded_path) = AppConfig::load(config_path.as_deref())?;
     let admin_listen = config.admin.listen;
@@ -73,6 +77,7 @@ async fn main() -> Result<()> {
         started_at: Instant::now(),
         crossplay_runtime,
         via_runtime,
+        update_status_path,
     };
 
     let result = axum::serve(listener, web::router(state.clone()))

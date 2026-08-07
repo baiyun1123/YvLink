@@ -10,6 +10,7 @@ Group=mc-proxy
 WorkingDirectory=/opt/mc-proxy
 EnvironmentFile=/etc/mc-proxy/admin.env
 Environment=RUST_LOG=mc_proxy=info
+Environment=MC_PROXY_UPDATE_STATUS_PATH=/var/lib/mc-proxy/update-status.json
 ExecStart=/opt/mc-proxy/mc-proxy --config /etc/mc-proxy/config.toml
 Restart=on-failure
 RestartSec=2
