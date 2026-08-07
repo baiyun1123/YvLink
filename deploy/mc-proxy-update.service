@@ -8,7 +8,8 @@ Type=oneshot
 User=root
 Group=root
 ExecStart=/usr/local/lib/mc-proxy/mc-proxy-update.sh
-UMask=0027
+# 状态 JSON 仅含版本和更新结果，控制台的非 root 服务账户需要读取它来提示管理员。
+UMask=0022
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
@@ -24,4 +25,3 @@ LockPersonality=true
 MemoryDenyWriteExecute=true
 CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_SETGID CAP_SETUID
 ReadWritePaths=/opt/mc-proxy /var/lib/mc-proxy
-

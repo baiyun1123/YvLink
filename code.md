@@ -2,6 +2,44 @@
 
 ## 任务标题
 
+v0.15.0：持久管理登录、自动更新弹窗与设置页优化中心。
+
+## 完成时间
+
+2026-08-08 02:21（Asia/Shanghai）
+
+## 变更内容
+
+- 管理控制台令牌从仅 `sessionStorage` 改为同源浏览器 `localStorage`，刷新、恢复标签页或重新打开控制台不再重复输入；退出登录或 API 返回 401 时会清除新旧存储键。旧版标签页令牌会自动迁移。
+- 新增受鉴权的 `GET /api/v1/updates`：仅读取 systemd 更新器写入的 JSON 状态，不提供远程触发升级能力。状态为下载中、更新完成、失败或回滚时，控制台自动显示可关闭的弹窗；设置页可手动刷新状态。
+- 设置页集中展示“自动更新”“网络包优化说明”“ViaLite Java 后端版本兼容”与原有 TCP/缓冲区/Backlog 参数；互通页保留 Geyser/Floodgate 专属配置，避免混淆不同链路职责。
+- 自动更新状态文件权限改为非敏感只读：更新器服务 `UMask=0022`，使非 root 的代理进程可读取版本和结果；不包含令牌、下载 URL 或任何密钥。
+- 目标服务器已升级到 v0.15.0，`/healthz` 正常，`GET /api/v1/updates` 返回 `up-to-date`，更新器、主服务均保持 active；部署前备份位于 `/root/yvlink-backups/20260808-021958-v015/`。
+- 已更新可检索、响应式中文 API HTML 文档，新增自动更新接口目录、字段和错误语义。
+
+## 关键决策
+
+- 不把管理员令牌写入 Cookie 或让服务端维护会话：现有 Bearer Token API 保持无状态，浏览器仅在同源下持久保存；管理员可随时用“退出登录”清除。部署公网时仍必须通过 HTTPS 和可信终端访问控制台。
+- 自动更新仍由 systemd 定时器独立执行；管理 API 只读状态，避免 Web 控制台被用作远程下载/重启入口。
+- NotEnoughBandwidth 不增加伪开关：它必须同时落在自有 Fabric 服务端和客户端；设置页明确展示其外部部署边界，YvLink 只负责保留数据流。
+
+## 风险与待办
+
+- 浏览器本地持久令牌会在同一浏览器用户配置中保留至显式退出；请勿在公共电脑登录，必要时轮换 `MC_PROXY_ADMIN_TOKEN`。
+- 自动更新器正常运行时很快完成下载与重启；控制台通过轮询和完成状态弹窗通知，不能保证显示每一个短暂的“下载中”中间态。
+- v0.15.0 Release 标签与多平台资产待 CI 构建后发布；当前服务器已由本地 release 构建升级，定时器会安全跳过旧的 v0.14.0。
+
+## 关联文件
+
+- `src/api.rs`、`src/main.rs`
+- `web/index.html`、`web/app.js`、`web/styles.css`
+- `deploy/mc-proxy.service`、`deploy/mc-proxy-update.service`
+- `docs/api.html`、`README.md`、`Cargo.toml`、`Cargo.lock`、`code.md`
+
+---
+
+## 任务标题
+
 v0.14.0：托管 ViaLite 多版本兼容、自动安全升级、Floodgate/NotEnoughBandwidth 使用边界与控制台优化。
 
 ## 完成时间
