@@ -259,7 +259,7 @@ impl<'de> Deserialize<'de> for ProxyProtocolVersion {
                 "v1" => Ok(Self::V1),
                 "v2" => Ok(Self::V2),
                 _ => Err(serde::de::Error::custom(
-                    "proxy_protocol 只支持 off、v1、v2 或布尔值",
+                    "proxy_protocol Only off, v1, v2 or boolean values are supported",
                 )),
             },
         }
@@ -449,7 +449,7 @@ impl Default for RuleConfig {
     fn default() -> Self {
         Self {
             id: "default".to_string(),
-            name: "默认线路".to_string(),
+            name: "Default Line".to_string(),
             host: vec!["*".to_string()],
             backend: vec!["127.0.0.1:25566".to_string()],
             strategy: LoadBalancingStrategy::Sequential,
@@ -507,11 +507,11 @@ impl AppConfig {
             .unwrap_or_else(|| PathBuf::from("config.toml"));
         let config = if selected.exists() {
             let source = fs::read_to_string(&selected)
-                .with_context(|| format!("无法读取配置文件 {}", selected.display()))?;
+                .with_context(|| format!("Cannot read configuration {}", selected.display()))?;
             toml::from_str(&source)
-                .with_context(|| format!("无法解析配置文件 {}", selected.display()))?
+                .with_context(|| format!("Cannot parse configuration {}", selected.display()))?
         } else if explicit_path.is_some() {
-            bail!("配置文件不存在: {}", selected.display());
+            bail!("Configuration file does not exist: {}", selected.display());
         } else {
             Self::default()
         };
@@ -524,10 +524,12 @@ impl AppConfig {
         self.crossplay.validate()?;
         self.via.validate()?;
         if !self.admin.listen.ip().is_loopback() {
-            bail!("admin.listen 必须监听回环地址，公网访问应通过 Nginx 反向代理");
+            bail!(
+                "admin.listen must use a loopback address; use a reverse proxy for network access"
+            );
         }
         if self.rules.is_empty() {
-            bail!("至少需要保留一条 host -> backend 路由");
+            bail!("At least one host-to-backend route is required");
         }
 
         let mut ids = HashSet::new();
@@ -536,31 +538,31 @@ impl AppConfig {
             rule.validate()?;
             if self.via.enabled && rule.proxy_protocol != ProxyProtocolVersion::Off {
                 bail!(
-                    "启用 via 时 rules.proxy_protocol 必须为 off：ViaLite 接收的是 Minecraft 握手，不接受 PROXY Protocol 头"
+                    "rules.proxy_protocol must be off when via is enabled: ViaLite receives a Minecraft handshake and does not accept the proxy Protocol header"
                 );
             }
             if !ids.insert(rule.id.as_str()) {
-                bail!("规则 id 重复: {}", rule.id);
+                bail!("Duplicate rule ID: {}", rule.id);
             }
             if rule.enabled {
                 for host in &rule.host {
                     let normalized = normalize_host_pattern(host)?;
                     if !hosts.insert(normalized.clone()) {
-                        bail!("已启用的 host 匹配规则重复: {normalized}");
+                        bail!("Duplicate enabled host pattern: {normalized}");
                     }
                 }
             }
         }
         if self.settings.proxy_enabled && !self.rules.iter().any(|rule| rule.enabled) {
-            bail!("代理启用时至少需要一条已启用的 host 路由");
+            bail!("At least one enabled route is required when the proxy is enabled");
         }
         if self.crossplay.enabled {
             if !self.settings.proxy_enabled {
-                bail!("启用 Crossplay 前必须启用 Minecraft Java 入口");
+                bail!("Minecraft Java ingress must be enabled before crossplay");
             }
             if self.crossplay.java_port != self.settings.listen.port() {
                 bail!(
-                    "crossplay.java_port 必须与 settings.listen 端口一致，当前应为 {}",
+                    "crossplay.java_port must match settings.listen port ({})",
                     self.settings.listen.port()
                 );
             }
@@ -575,7 +577,7 @@ impl AppConfig {
                 })
             {
                 bail!(
-                    "crossplay.java_address 未匹配任何已启用且允许 Crossplay 的路由: {}",
+                    "crossplay.java_address does not match an enabled route with crossplay allowed: {}",
                     self.crossplay.java_address
                 );
             }
@@ -585,15 +587,20 @@ impl AppConfig {
 
     pub fn persist(&self, path: &Path) -> Result<()> {
         self.validate()?;
-        let source = toml::to_string_pretty(self).context("无法序列化配置")?;
+        let source = toml::to_string_pretty(self).context("Cannot serialize configuration")?;
         let parent = path.parent().unwrap_or_else(|| Path::new("."));
-        fs::create_dir_all(parent)
-            .with_context(|| format!("无法创建配置目录 {}", parent.display()))?;
+        fs::create_dir_all(parent).with_context(|| {
+            format!("Cannot create configuration directory {}", parent.display())
+        })?;
         let temporary = path.with_extension("toml.tmp");
-        fs::write(&temporary, source)
-            .with_context(|| format!("无法写入临时配置 {}", temporary.display()))?;
+        fs::write(&temporary, source).with_context(|| {
+            format!(
+                "Could not write to temporary configuration {}",
+                temporary.display()
+            )
+        })?;
         fs::rename(&temporary, path)
-            .with_context(|| format!("无法原子替换配置 {}", path.display()))?;
+            .with_context(|| format!("Cannot replace configuration file {}", path.display()))?;
         Ok(())
     }
 }
@@ -601,10 +608,10 @@ impl AppConfig {
 impl ViaLiteConfig {
     pub fn validate(&self) -> Result<()> {
         if self.runtime_dir.trim().is_empty() {
-            bail!("via.runtime_dir 不能为空");
+            bail!("via.runtime_dir cannot be empty");
         }
         if self.runtime_dir.len() > 4096 {
-            bail!("via.runtime_dir 过长");
+            bail!("via.runtime_dir is too long");
         }
         for (name, value) in [
             ("via.gate_protocol", self.gate_protocol.as_str()),
@@ -612,7 +619,9 @@ impl ViaLiteConfig {
         ] {
             if value.trim().is_empty() || value.len() > 64 || value.chars().any(char::is_whitespace)
             {
-                bail!("{name} 必须是长度不超过 64 的非空协议版本标识");
+                bail!(
+                    "{name} must be a non-empty protocol version identifier of at most 64 characters"
+                );
             }
         }
         if self.enabled {
@@ -622,10 +631,10 @@ impl ViaLiteConfig {
                 .map(str::trim)
                 .filter(|path| !path.is_empty())
                 .ok_or_else(|| {
-                    anyhow!("启用 via 时必须设置 via.binary_path（由部署脚本校验和下载 ViaLite）")
+                    anyhow!("The via.binary_path (checked and downloaded by the deployment script) must be set when via is enabled ViaLite)")
                 })?;
             if !Path::new(path).is_absolute() {
-                bail!("via.binary_path 必须使用绝对路径");
+                bail!("via.binary_path must be an absolute path");
             }
         }
         Ok(())
@@ -635,7 +644,7 @@ impl ViaLiteConfig {
 impl CrossplayConfig {
     pub fn validate(&self) -> Result<()> {
         if self.bedrock_listen.port() == 0 {
-            bail!("crossplay.bedrock_listen 端口不能为 0");
+            bail!("crossplay.bedrock_listen port cannot be 0");
         }
         let java_address = self.java_address.trim();
         if java_address.is_empty()
@@ -643,22 +652,22 @@ impl CrossplayConfig {
             || java_address.chars().any(char::is_whitespace)
             || java_address.contains('\0')
         {
-            bail!("crossplay.java_address 必须是有效的 Java 目标主机或 IP");
+            bail!("crossplay.java_address must be a valid Java target host or IP address");
         }
         if self.java_port == 0 {
-            bail!("crossplay.java_port 不能为 0");
+            bail!("crossplay.java_port cannot be 0");
         }
         if self.provider == CrossplayProvider::GeyserLite {
             let geyserlite = &self.geyserlite;
             match geyserlite.mode {
                 GeyserLiteMode::Embedded => {
                     if geyserlite.binary_path.is_some() {
-                        bail!("crossplay.geyserlite.binary_path 仅用于 subprocess 模式");
+                        bail!("crossplay.geyserlite.binary_path is only valid in subprocess mode");
                     }
                 }
                 GeyserLiteMode::Subprocess => {
                     if geyserlite.library_path.is_some() {
-                        bail!("crossplay.geyserlite.library_path 仅用于 embedded 模式");
+                        bail!("crossplay.geyserlite.library_path is only valid in embedded mode");
                     }
                 }
             }
@@ -666,14 +675,14 @@ impl CrossplayConfig {
                 let key = key.trim();
                 if key.len() != 32 || !key.chars().all(|character| character.is_ascii_hexdigit()) {
                     bail!(
-                        "crossplay.geyserlite.floodgate_key 必须是 16 字节密钥的 32 位十六进制字符串"
+                        "crossplay.geyserlite.floodgate_key must contain 32 hexadecimal digits (16 bytes)"
                     );
                 }
             }
             if self.auth_type == CrossplayAuthType::Floodgate && geyserlite.floodgate_key.is_none()
             {
                 bail!(
-                    "provider = \"geyserlite\" 且 auth_type = \"floodgate\" 时必须提供 \
+                    "provider = \"geyserlite\" and auth_type = \"floodgate\" It has to be provided. \
                      crossplay.geyserlite.floodgate_key"
                 );
             }
@@ -685,31 +694,31 @@ impl CrossplayConfig {
 impl GlobalSettings {
     pub fn validate(&self) -> Result<()> {
         if self.listen.port() == 0 {
-            bail!("settings.listen 端口不能为 0");
+            bail!("settings.listen port cannot be 0");
         }
         if self.max_connections == 0 || self.max_connections > 1_000_000 {
-            bail!("max_connections 必须在 1..=1000000 之间");
+            bail!("max_connections must be between 1 and 1000000");
         }
         if self.connect_timeout_ms == 0 || self.handshake_timeout_ms == 0 {
-            bail!("连接和握手超时必须大于 0");
+            bail!("Connection and handshake timeout must be greater than 0");
         }
         if !(1..=300).contains(&self.shutdown_grace_secs) {
-            bail!("shutdown_grace_secs 必须在 1..=300 之间");
+            bail!("shutdown_grace_secs must be between 1 and 300");
         }
         if !(MIN_COPY_BUFFER..=MAX_COPY_BUFFER).contains(&self.copy_buffer_bytes) {
-            bail!("copy_buffer_bytes 必须在 {MIN_COPY_BUFFER}..={MAX_COPY_BUFFER} 之间");
+            bail!("copy_buffer_bytes must be between {MIN_COPY_BUFFER} and {MAX_COPY_BUFFER}");
         }
         if self.socket_buffer_bytes > 16 * 1024 * 1024 {
-            bail!("socket_buffer_bytes 不能超过 16777216");
+            bail!("socket_buffer_bytes cannot exceed 16777216");
         }
         if !(1..=65_535).contains(&self.listen_backlog) {
-            bail!("listen_backlog 必须在 1..=65535 之间");
+            bail!("listen_backlog must be between 1 and 65535");
         }
         if self.stats_interval_secs == 0 {
-            bail!("stats_interval_secs 必须大于 0");
+            bail!("stats_interval_secs must be greater than 0");
         }
         if self.reuse_port && !cfg!(any(target_os = "linux", target_os = "android")) {
-            bail!("reuse_port 仅支持 Linux 或 Android");
+            bail!("reuse_port is supported only on Linux or Android");
         }
         Ok(())
     }
@@ -724,32 +733,32 @@ impl RuleConfig {
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
         {
-            bail!("规则 id 只能包含 1 到 32 个字母、数字、短横线或下划线");
+            bail!("Rule id can only contain 1 to 32 letters, numbers, dashes or underscores");
         }
         let name = self.name.trim();
         if name.is_empty() || name.chars().count() > 64 {
-            bail!("规则名称长度必须在 1..=64 个字符之间");
+            bail!("Rule name must contain 1 to 64 characters");
         }
         if self.host.is_empty() {
-            bail!("规则 {} 至少需要一个 host", self.id);
+            bail!("Rule {} must have at least one host", self.id);
         }
         for host in &self.host {
             normalize_host_pattern(host)?;
         }
         if self.host.iter().any(|host| host.trim() == "*") && self.host.len() != 1 {
-            bail!("host = \"*\" 必须单独作为一条兜底规则");
+            bail!("host = \"*\" must be a standalone fallback pattern");
         }
         if self.backend.is_empty() {
-            bail!("规则 {} 至少需要一个 backend", self.id);
+            bail!("Rule {} must have at least one backend", self.id);
         }
         if self.backend.len() > 128 {
-            bail!("规则 {} 的 backend 不能超过 128 个", self.id);
+            bail!("Rule {} cannot have more than 128 backends", self.id);
         }
         let mut backends = HashSet::new();
         for backend in &self.backend {
             validate_backend(backend)?;
             if !backends.insert(backend.trim().to_ascii_lowercase()) {
-                bail!("规则 {} 的 backend 重复: {backend}", self.id);
+                bail!("Rule {} has a duplicate backend: {backend}", self.id);
             }
         }
         self.health_check.validate()?;
@@ -757,19 +766,19 @@ impl RuleConfig {
             status.validate()?;
         }
         if self.whitelist.len() > 10_000 {
-            bail!("规则 {} 的白名单不能超过 10000 个玩家", self.id);
+            bail!("Rule {} whitelist cannot exceed 10,000 players", self.id);
         }
         let mut whitelist = HashSet::new();
         for player in &self.whitelist {
             let normalized = normalize_player_name(player)?;
             if !whitelist.insert(normalized.clone()) {
-                bail!("规则 {} 的白名单玩家重复: {normalized}", self.id);
+                bail!("Rule {} has a duplicate player: {normalized}", self.id);
             }
         }
         if self.whitelist_enabled {
             let message = self.whitelist_message.trim();
             if message.is_empty() || message.chars().count() > 1024 {
-                bail!("白名单拒绝消息长度必须在 1..=1024 个字符之间");
+                bail!("Whitelist rejection message must contain 1 to 1024 characters");
             }
         }
         Ok(())
@@ -779,18 +788,18 @@ impl RuleConfig {
 impl HealthCheckConfig {
     pub fn validate(&self) -> Result<()> {
         if !(1..=86_400).contains(&self.interval_secs) {
-            bail!("健康检查间隔必须在 1..=86400 秒之间");
+            bail!("Health check interval must be between 1 and 86400 seconds");
         }
         if !(100..=60_000).contains(&self.timeout_ms) {
-            bail!("健康检查超时必须在 100..=60000 毫秒之间");
+            bail!("Health check timeout must be between 100 and 60000 milliseconds");
         }
         if self.timeout_ms > self.interval_secs.saturating_mul(1_000) {
-            bail!("健康检查超时不能大于检查间隔");
+            bail!("Health check timeout cannot be greater than check interval");
         }
         if !(1..=100).contains(&self.unhealthy_threshold)
             || !(1..=100).contains(&self.healthy_threshold)
         {
-            bail!("健康检查失败与恢复阈值必须在 1..=100 之间");
+            bail!("Health check failure and recovery thresholds must be between 1 and 100");
         }
         if let Some(host) = &self.minecraft_host {
             let host = host.trim();
@@ -800,11 +809,13 @@ impl HealthCheckConfig {
                 || host.contains('\0')
                 || host.chars().any(char::is_whitespace)
             {
-                bail!("Minecraft 健康检查 Host 必须是 1..=255 字节且不含通配符、空白或 NUL");
+                bail!(
+                    "Minecraft health check host must be 1 to 255 bytes, with no wildcard, whitespace, or NUL"
+                );
             }
         }
         if self.minecraft_protocol < 0 {
-            bail!("Minecraft 健康检查协议号不能小于 0");
+            bail!("Minecraft Health check protocol number cannot be less than 0");
         }
         Ok(())
     }
@@ -813,7 +824,7 @@ impl HealthCheckConfig {
 impl StatusConfig {
     pub fn validate(&self) -> Result<()> {
         if !(-1..=86_400).contains(&self.cache_ttl_secs) {
-            bail!("状态缓存 TTL 必须在 -1..=86400 秒之间，-1 表示禁用");
+            bail!("Status cache TTL must be between -1 and 86400 seconds; -1 disables caching");
         }
         validate_status_response(
             self.motd.as_deref(),
@@ -842,15 +853,15 @@ fn validate_status_response(
     if let Some(motd) = motd
         && (motd.trim().is_empty() || motd.chars().count() > 2048)
     {
-        bail!("自定义 MOTD 长度必须在 1..=2048 个字符之间");
+        bail!("Custom MOTD must contain 1 to 2048 characters");
     }
     if let Some(version_name) = version_name
         && (version_name.trim().is_empty() || version_name.chars().count() > 64)
     {
-        bail!("状态版本名称长度必须在 1..=64 个字符之间");
+        bail!("Status version name must contain 1 to 64 characters");
     }
     if online.is_some_and(|value| value > 1_000_000) || max.is_some_and(|value| value > 1_000_000) {
-        bail!("状态玩家数必须在 0..=1000000 之间");
+        bail!("Online player count must be between 0 and 1000000");
     }
     Ok(())
 }
@@ -1263,7 +1274,7 @@ impl Drop for BackendConnectionGuard {
 pub fn normalize_host_pattern(host: &str) -> Result<String> {
     let normalized = host.trim().trim_end_matches('.').to_ascii_lowercase();
     if normalized.is_empty() || normalized.len() > 253 || normalized.contains(':') {
-        bail!("无效的 host 匹配规则: {host}");
+        bail!("Invalid host pattern: {host}");
     }
     if normalized == "*" {
         return Ok(normalized);
@@ -1277,7 +1288,7 @@ pub fn normalize_host_pattern(host: &str) -> Result<String> {
                 byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'*' || byte == b'?'
             })
         {
-            bail!("无效的 host 匹配规则: {host}");
+            bail!("Invalid host pattern: {host}");
         }
     }
     Ok(normalized)
@@ -1320,15 +1331,15 @@ pub fn validate_backend(backend: &str) -> Result<()> {
     let backend = backend.trim();
     let (host, port) = backend
         .rsplit_once(':')
-        .ok_or_else(|| anyhow::anyhow!("backend 必须使用 主机:端口 格式: {backend}"))?;
+        .ok_or_else(|| anyhow::anyhow!("backend Host must be used: Port format: {backend}"))?;
     if host.is_empty() || host.contains(char::is_whitespace) {
-        bail!("backend 主机无效: {backend}");
+        bail!("Invalid backend host: {backend}");
     }
     let port: u16 = port
         .parse()
-        .with_context(|| format!("backend 端口无效: {backend}"))?;
+        .with_context(|| format!("Invalid backend port: {backend}"))?;
     if port == 0 {
-        bail!("backend 端口不能为 0");
+        bail!("Backend port cannot be 0");
     }
     Ok(())
 }
@@ -1341,7 +1352,7 @@ pub fn normalize_player_name(player: &str) -> Result<String> {
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
     {
-        bail!("无效的 Minecraft 玩家名: {player}");
+        bail!("Invalid Minecraft player name: {player}");
     }
     Ok(player.to_ascii_lowercase())
 }
@@ -1351,7 +1362,7 @@ fn default_true() -> bool {
 }
 
 fn default_whitelist_message() -> String {
-    "§c你不在此服务器的白名单中。".to_string()
+    "§cYou are not in the whitelist of this server.".to_string()
 }
 
 fn one_or_many<'de, D>(deserializer: D) -> std::result::Result<Vec<String>, D::Error>
@@ -1595,7 +1606,7 @@ proxy_protocol={value}
         let rule: RuleConfig = toml::from_str(
             r#"
 id = "legacy"
-name = "旧路由"
+name = "Old route"
 host = "legacy.example.com"
 backend = "127.0.0.1:25565"
 "#,
@@ -1646,14 +1657,14 @@ backend = "127.0.0.1:25565"
             r#"
 mode = "backend"
 cache_ttl_secs = 60
-motd = "§a覆盖 MOTD"
+motd = "§aOverwrite MOTD"
 "#,
         )
         .unwrap();
 
         assert_eq!(status.mode, StatusMode::Backend);
         assert_eq!(status.cache_ttl_secs, 60);
-        assert_eq!(status.motd.as_deref(), Some("§a覆盖 MOTD"));
+        assert_eq!(status.motd.as_deref(), Some("§aOverwrite MOTD"));
         assert_eq!(status.version_name, None);
         assert_eq!(status.protocol, None);
         assert_eq!(status.online, None);

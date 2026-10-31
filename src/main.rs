@@ -10,21 +10,21 @@ use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 const HELP: &str = "\
-mc-proxy - Minecraft Java TCP 转发器与管理面板
+mc-proxy - Minecraft Java TCP proxy and admin panel
 
-用法:
-  mc-proxy [--config <路径>]
+Usage:
+  mc-proxy [--config <Path>]
   mc-proxy --version
   mc-proxy --help
 
-环境变量:
-  MC_PROXY_ADMIN_TOKEN  必填，至少 32 个字符，用于管理 API 登录
-  MC_PROXY_UPDATE_STATUS_PATH  可选，自动更新器状态 JSON 路径
-  RUST_LOG              可选，例如 mc_proxy=debug
+Environment variables:
+  MC_PROXY_ADMIN_TOKEN  Required, at least 32 characters, for admin API access
+  MC_PROXY_UPDATE_STATUS_PATH  Optional path to the updater status JSON file
+  RUST_LOG              Optional, for example mc_proxy=debug
 
-配置:
-  未指定 --config 时使用当前目录的 config.toml；
-  文件不存在则写入内置默认配置。可参考 config.example.toml。
+Configuration:
+  Defaults to config.toml when --config is omitted.
+  If the file does not exist, the built-in default is written. See config.example.toml.
 ";
 
 #[tokio::main(flavor = "multi_thread")]
@@ -32,8 +32,8 @@ async fn main() -> Result<()> {
     let config_path = parse_args()?;
     init_tracing();
 
-    let admin_token =
-        env::var("MC_PROXY_ADMIN_TOKEN").context("缺少 MC_PROXY_ADMIN_TOKEN 环境变量")?;
+    let admin_token = env::var("MC_PROXY_ADMIN_TOKEN")
+        .context("Missing MC_PROXY_ADMIN_TOKEN environment variable")?;
     validate_admin_token(&admin_token)?;
     let update_status_path = env::var_os("MC_PROXY_UPDATE_STATUS_PATH")
         .map(PathBuf::from)
@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
     let admin_listen = config.admin.listen;
     let via_runtime = ViaLiteRuntime::new();
     if let Err(error) = via_runtime.apply(&config).await {
-        warn!(%error, "ViaLite 未能启动，代理将直连后端；请在控制台检查 ViaLite 状态");
+        warn!(%error, "ViaLite failed to start; the proxy will connect directly to the backend. Check ViaLite status in the console");
     }
     let manager = Arc::new(
         RuntimeManager::new(config.clone(), loaded_path.clone())
@@ -56,19 +56,19 @@ async fn main() -> Result<()> {
     if config.crossplay.enabled && config.crossplay.provider == CrossplayProvider::GeyserLite {
         let runtime_status = crossplay_runtime.status().await;
         if runtime_status.running {
-            info!("GeyserLite 托管翻译层已在启动阶段拉起");
+            info!("GeyserLite translation layer started");
         } else if let Some(error) = runtime_status.error.as_deref() {
-            warn!(%error, "启动阶段 GeyserLite 未能运行，控制台会继续展示该故障");
+            warn!(%error, "GeyserLite failed to start; the console will show the error");
         }
     }
 
     let listener = TcpListener::bind(admin_listen)
         .await
-        .with_context(|| format!("管理端无法监听 {admin_listen}"))?;
+        .with_context(|| format!("Cannot bind admin listener at {admin_listen}"))?;
     info!(
         %admin_listen,
         config = %loaded_path.display(),
-        "Minecraft 转发管理端已启动"
+        "Minecraft proxy admin server started"
     );
 
     let state = ApiState {
@@ -86,7 +86,7 @@ async fn main() -> Result<()> {
     state.crossplay_runtime.stop().await;
     state.via_runtime.stop().await;
     manager.shutdown().await;
-    result.context("管理端服务异常退出")
+    result.context("Admin server exited unexpectedly")
 }
 
 fn parse_args() -> Result<Option<PathBuf>> {
@@ -105,14 +105,14 @@ fn parse_args() -> Result<Option<PathBuf>> {
             }
             Some("-c" | "--config") => {
                 let Some(path) = args.next() else {
-                    bail!("--config 后必须提供文件路径");
+                    bail!("--config requires a file path");
                 };
                 if config_path.replace(PathBuf::from(path)).is_some() {
-                    bail!("--config 只能指定一次");
+                    bail!("--config may only be specified once");
                 }
             }
-            Some(other) => bail!("未知参数: {other}\n\n{HELP}"),
-            None => bail!("参数不是有效 UTF-8"),
+            Some(other) => bail!("Unknown argument: {other}\n\n{HELP}"),
+            None => bail!("Parameters are not valid UTF-8"),
         }
     }
 
@@ -134,11 +134,12 @@ async fn shutdown_signal() {
     {
         use tokio::signal::unix::{SignalKind, signal};
 
-        let mut terminate = signal(SignalKind::terminate()).expect("无法注册 SIGTERM 监听器");
+        let mut terminate =
+            signal(SignalKind::terminate()).expect("Unable to register SIGTERM listener");
         tokio::select! {
             result = tokio::signal::ctrl_c() => {
                 if let Err(error) = result {
-                    tracing::error!(%error, "监听 Ctrl+C 失败");
+                    tracing::error!(%error, "Failed to listen for Ctrl+C");
                 }
             }
             _ = terminate.recv() => {}
@@ -147,6 +148,6 @@ async fn shutdown_signal() {
 
     #[cfg(not(unix))]
     if let Err(error) = tokio::signal::ctrl_c().await {
-        tracing::error!(%error, "监听 Ctrl+C 失败");
+        tracing::error!(%error, "Failed to listen for Ctrl+C");
     }
 }

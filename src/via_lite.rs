@@ -102,7 +102,7 @@ impl ViaLiteRuntime {
         if let Err(error) = &result {
             let mut inner = self.inner.lock().await;
             inner.error = Some(error.to_string());
-            warn!(%error, "ViaLite 托管运行时启动失败，代理将直连后端");
+            warn!(%error, "ViaLite runtime failed to start; the proxy will connect directly to the backend");
         }
         result
     }
@@ -114,12 +114,13 @@ impl ViaLiteRuntime {
             Some(child) => match child.try_wait() {
                 Ok(None) => true,
                 Ok(Some(status)) => {
-                    inner.error = Some(format!("ViaLite 子进程已退出（{status}）"));
+                    inner.error = Some(format!("ViaLite Subprocess exited({status})"));
                     exited = true;
                     false
                 }
                 Err(error) => {
-                    inner.error = Some(format!("无法读取 ViaLite 子进程状态: {error}"));
+                    inner.error =
+                        Some(format!("Unable to read ViaLite subprocess status: {error}"));
                     exited = true;
                     false
                 }
@@ -145,47 +146,60 @@ impl ViaLiteRuntime {
         let mut inner = self.inner.lock().await;
         if let Some(mut child) = inner.child.take() {
             if let Err(error) = child.start_kill() {
-                warn!(%error, "停止 ViaLite 子进程失败");
+                warn!(%error, "Failed to stop ViaLite subprocess");
             }
             if let Err(error) = child.wait().await {
-                warn!(%error, "等待 ViaLite 子进程退出失败");
+                warn!(%error, "Failed while waiting for the ViaLite subprocess to exit");
             }
         }
         if let Some(path) = inner.config_path.take()
             && let Err(error) = tokio::fs::remove_file(&path).await
             && error.kind() != std::io::ErrorKind::NotFound
         {
-            warn!(path = %path.display(), %error, "清理 ViaLite 临时配置失败");
+            warn!(path = %path.display(), %error, "Failed to clean up ViaLite temporary configuration");
         }
         inner.managed_backends = 0;
     }
 
     async fn start(&self, config: &AppConfig) -> Result<()> {
         if !cfg!(target_os = "linux") {
-            bail!("当前平台不支持 ViaLite 托管 subprocess；请在 Linux 上运行");
+            bail!(
+                "ViaLite hosted subprocess is not supported on the current platform; please run on Linux"
+            );
         }
         let binary = config
             .via
             .binary_path
             .as_deref()
-            .ok_or_else(|| anyhow!("缺少 via.binary_path"))?;
+            .ok_or_else(|| anyhow!("Missing via.binary_path"))?;
         if !Path::new(binary).is_file() {
-            bail!("ViaLite 可执行文件不存在: {binary}");
+            bail!("ViaLite executable does not exist: {binary}");
         }
 
         let (native_config, mappings) = build_native_config(config)?;
         if native_config.backends.is_empty() {
-            bail!("启用 via 时至少需要一条已启用路由及其后端");
+            bail!("ViaLite requires at least one enabled route with a backend");
         }
         let runtime_dir = Path::new(&config.via.runtime_dir);
         tokio::fs::create_dir_all(runtime_dir)
             .await
-            .with_context(|| format!("无法创建 ViaLite 运行目录 {}", runtime_dir.display()))?;
+            .with_context(|| {
+                format!(
+                    "Could not create ViaLite run directory {}",
+                    runtime_dir.display()
+                )
+            })?;
         let config_path = runtime_dir.join(format!("vialite-{}.json", unique_suffix()));
-        let payload = serde_json::to_vec(&native_config).context("无法序列化 ViaLite 原生配置")?;
+        let payload = serde_json::to_vec(&native_config)
+            .context("Cannot serialize the ViaLite native configuration")?;
         tokio::fs::write(&config_path, payload)
             .await
-            .with_context(|| format!("无法写入 ViaLite 配置 {}", config_path.display()))?;
+            .with_context(|| {
+                format!(
+                    "Unable to write to ViaLite configuration {}",
+                    config_path.display()
+                )
+            })?;
 
         let mut command = Command::new(binary);
         command
@@ -197,7 +211,7 @@ impl ViaLiteRuntime {
             .stderr(std::process::Stdio::inherit());
         let mut child = command
             .spawn()
-            .with_context(|| format!("无法启动 ViaLite 可执行文件 {binary}"))?;
+            .with_context(|| format!("Cannot start the ViaLite executable file {binary}"))?;
 
         if let Err(error) = wait_until_ready(&mut child, mappings.values()).await {
             let _ = child.start_kill();
@@ -213,7 +227,7 @@ impl ViaLiteRuntime {
         inner.managed_backends = native_config.backends.len();
         info!(
             backends = inner.managed_backends,
-            "ViaLite 托管协议兼容层已就绪"
+            "ViaLite Managed protocol compatibility layer is ready"
         );
         Ok(())
     }
@@ -253,8 +267,11 @@ fn build_native_config(config: &AppConfig) -> Result<(NativeConfig, HashMap<Stri
 }
 
 fn free_loopback_address() -> Result<String> {
-    let listener = StdTcpListener::bind("127.0.0.1:0").context("无法分配 ViaLite 回环端口")?;
-    let address: SocketAddr = listener.local_addr().context("无法读取 ViaLite 回环端口")?;
+    let listener =
+        StdTcpListener::bind("127.0.0.1:0").context("Unable to allocate ViaLite loopback port")?;
+    let address: SocketAddr = listener
+        .local_addr()
+        .context("Unable to read ViaLite loopback port")?;
     drop(listener);
     Ok(address.to_string())
 }
@@ -266,8 +283,11 @@ async fn wait_until_ready<'a>(
     let addresses: Vec<_> = addresses.cloned().collect();
     let deadline = Instant::now() + READY_TIMEOUT;
     loop {
-        if let Some(status) = child.try_wait().context("无法读取 ViaLite 子进程状态")? {
-            bail!("ViaLite 在就绪前退出（{status}）");
+        if let Some(status) = child
+            .try_wait()
+            .context("Unable to read ViaLite subprocess status")?
+        {
+            bail!("ViaLite exited before becoming ready ({status})");
         }
         let mut all_ready = true;
         for address in &addresses {
@@ -284,10 +304,7 @@ async fn wait_until_ready<'a>(
             return Ok(());
         }
         if Instant::now() >= deadline {
-            bail!(
-                "ViaLite 在 {} 秒内未监听全部后端回环端口",
-                READY_TIMEOUT.as_secs()
-            );
+            bail!("ViaLite Yes. {} seconds", READY_TIMEOUT.as_secs());
         }
         sleep(READY_RETRY).await;
     }

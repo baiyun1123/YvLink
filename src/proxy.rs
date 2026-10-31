@@ -68,25 +68,25 @@ struct ConnectionAddresses {
 
 #[derive(Debug, Error)]
 pub enum ProxyError {
-    #[error("设置客户端 socket 失败: {0}")]
+    #[error("Set client socket failed: {0}")]
     ClientSocket(#[source] io::Error),
-    #[error("读取 Minecraft 握手超时")]
+    #[error("Timeout to read Minecraft handshake")]
     HandshakeTimeout(#[source] Elapsed),
-    #[error("读取 Minecraft 握手失败: {0}")]
+    #[error("Failed to read Minecraft handshake: {0}")]
     Handshake(#[source] io::Error),
-    #[error("握手域名未匹配任何已启用路由: {0}")]
+    #[error("Handshake domain does not match any enabled routes: {0}")]
     NoRoute(String),
-    #[error("连接后端超时")]
+    #[error("Connect backend timeout")]
     BackendTimeout(#[source] Elapsed),
-    #[error("连接后端失败: {0}")]
+    #[error("Failed to connect backend: {0}")]
     BackendConnect(#[source] io::Error),
-    #[error("设置后端 socket 失败: {0}")]
+    #[error("Failed to set backend socket: {0}")]
     BackendSocket(#[source] io::Error),
-    #[error("向后端发送 PROXY Protocol 头失败: {0}")]
+    #[error("Failed to send proxy Protocol header to backend: {0}")]
     BackendProxyProtocol(#[source] io::Error),
-    #[error("后端状态响应无效: {0}")]
+    #[error("Backend response invalid: {0}")]
     BackendStatus(#[source] io::Error),
-    #[error("双向转发失败: {0}")]
+    #[error("Two-way forward failed: {0}")]
     Forward(#[source] io::Error),
 }
 
@@ -168,7 +168,9 @@ pub async fn proxy_connection(
         .map_err(ProxyError::HandshakeTimeout)?
         .map_err(ProxyError::Handshake)?;
         let player = parse_login_username(&login_start).ok_or_else(|| {
-            ProxyError::Handshake(invalid_data("无法解析 Minecraft Login Start 玩家名"))
+            ProxyError::Handshake(invalid_data(
+                "Unable to parse the 32-bit hex string of the Minecraft Login Start player name",
+            ))
         })?;
         if !route
             .whitelist
@@ -255,7 +257,7 @@ async fn connect_route_backend(
     let pool = config
         .backend_pools
         .get(&route.id)
-        .expect("每条运行路由都必须有后端状态池");
+        .expect("Each running route must have a backend state pool");
     let mut last_error = None;
     let mut failed_attempts = 0_u64;
     for index in pool.candidate_indices(route.strategy) {
@@ -290,7 +292,7 @@ async fn connect_route_backend(
             }
         }
     }
-    Err(last_error.expect("已校验的路由至少包含一个后端"))
+    Err(last_error.expect("Verified route contains at least one backend"))
 }
 
 async fn connect_backend(
@@ -392,7 +394,7 @@ async fn read_packet_after_first(
     let mut current = first;
     while current & 0x80 != 0 {
         if shift >= 35 {
-            return Err(invalid_data("握手包长度 VarInt 过长"));
+            return Err(invalid_data("Handshake packet length VarInt is too long"));
         }
         current = client.read_u8().await?;
         bytes.push(current);
@@ -400,7 +402,7 @@ async fn read_packet_after_first(
         shift += 7;
     }
     if packet_length == 0 || packet_length > max_length {
-        return Err(invalid_data("Minecraft 包长度超出限制"));
+        return Err(invalid_data("Minecraft Package length exceeding limit"));
     }
 
     let header_length = bytes.len();
@@ -483,29 +485,32 @@ fn read_varint(bytes: &[u8], cursor: &mut usize) -> Option<usize> {
 
 fn rewrite_handshake_hostname(packet: &[u8], new_hostname: &str) -> io::Result<Vec<u8>> {
     if packet.first().copied() == Some(0xfe) {
-        return Err(invalid_data("旧版 Ping 不支持改写握手 Host"));
+        return Err(invalid_data(
+            "Legacy Ping does not support overwriting handshakes Host",
+        ));
     }
 
     let mut cursor = 0;
-    let packet_length =
-        read_varint(packet, &mut cursor).ok_or_else(|| invalid_data("无法读取握手包长度"))?;
+    let packet_length = read_varint(packet, &mut cursor)
+        .ok_or_else(|| invalid_data("Could not read handshake length"))?;
     let payload_start = cursor;
     let packet_end = payload_start
         .checked_add(packet_length)
-        .ok_or_else(|| invalid_data("握手包长度溢出"))?;
+        .ok_or_else(|| invalid_data("Handshake bag length spill"))?;
     if packet_end > packet.len() || read_varint(packet, &mut cursor) != Some(0) {
-        return Err(invalid_data("不是有效的 Minecraft Handshake"));
+        return Err(invalid_data("It's not working. Minecraft Handshake"));
     }
-    read_varint(packet, &mut cursor).ok_or_else(|| invalid_data("无法读取协议版本"))?;
+    read_varint(packet, &mut cursor)
+        .ok_or_else(|| invalid_data("Could not read protocol version"))?;
     let hostname_length_field = cursor;
-    let hostname_length =
-        read_varint(packet, &mut cursor).ok_or_else(|| invalid_data("无法读取握手 Host 长度"))?;
+    let hostname_length = read_varint(packet, &mut cursor)
+        .ok_or_else(|| invalid_data("Unable to read the host length of the handshake"))?;
     let hostname_start = cursor;
     let hostname_end = hostname_start
         .checked_add(hostname_length)
-        .ok_or_else(|| invalid_data("握手 Host 长度溢出"))?;
+        .ok_or_else(|| invalid_data("Handshake Host length overflow"))?;
     if hostname_end > packet_end {
-        return Err(invalid_data("握手 Host 超出包边界"));
+        return Err(invalid_data("Host out of package boundary"));
     }
 
     let old_hostname = &packet[hostname_start..hostname_end];
@@ -517,9 +522,11 @@ fn rewrite_handshake_hostname(packet: &[u8], new_hostname: &str) -> io::Result<V
     let new_length = new_hostname
         .len()
         .checked_add(suffix.len())
-        .ok_or_else(|| invalid_data("改写后的握手 Host 过长"))?;
+        .ok_or_else(|| invalid_data("Rewritten handshake Host too long"))?;
     if new_length > 1024 {
-        return Err(invalid_data("改写后的握手 Host 超过 1024 字节"));
+        return Err(invalid_data(
+            "The overwritten handshake Host exceeds 1024 bytes",
+        ));
     }
 
     let mut payload = Vec::with_capacity(packet_length + new_length);
@@ -580,7 +587,7 @@ async fn serve_managed_status(
     .map_err(ProxyError::Handshake)?;
     if packet_id(&request) != Some(0) {
         return Err(ProxyError::Handshake(invalid_data(
-            "状态阶段首包不是 Status Request",
+            "Not in state phase first. Status Request",
         )));
     }
 
@@ -688,7 +695,7 @@ async fn cached_or_fetch_route_status(
     let pool = config
         .backend_pools
         .get(&resolution.route.id)
-        .expect("每条运行路由都必须有后端状态池");
+        .expect("Each running route must have a backend state pool");
     let mut last_error = None;
     let mut failed_attempts = 0_u64;
 
@@ -743,12 +750,11 @@ async fn cached_or_fetch_route_status(
         match result {
             Ok(response_json) => {
                 let response = serde_json::from_str::<Value>(&response_json)
-                    .map_err(|_| invalid_data("后端 Status JSON 无效"))
+                    .map_err(|_| invalid_data("Invalid backend Status JSON"))
                     .and_then(|response| {
-                        response
-                            .is_object()
-                            .then_some(response)
-                            .ok_or_else(|| invalid_data("后端 Status JSON 顶层不是对象"))
+                        response.is_object().then_some(response).ok_or_else(|| {
+                            invalid_data("Backend Status JSON top level is not an object")
+                        })
                     });
                 match response {
                     Ok(response) => {
@@ -785,7 +791,7 @@ async fn cached_or_fetch_route_status(
             }
         }
     }
-    Err(last_error.expect("已校验的路由至少包含一个后端"))
+    Err(last_error.expect("Verified route contains at least one backend"))
 }
 
 async fn fetch_backend_status(
@@ -816,7 +822,9 @@ async fn fetch_backend_status(
     .map_err(ProxyError::BackendStatus)?;
     packet_string(&response, 0)
         .map(str::to_string)
-        .ok_or_else(|| ProxyError::BackendStatus(invalid_data("无法解析后端 Status Response")))
+        .ok_or_else(|| {
+            ProxyError::BackendStatus(invalid_data("Could not parse backend Status Response"))
+        })
 }
 
 pub(crate) async fn probe_minecraft_status(
@@ -827,7 +835,7 @@ pub(crate) async fn probe_minecraft_status(
     proxy_protocol: ProxyProtocolVersion,
 ) -> io::Result<()> {
     if hostname.is_empty() || hostname.len() > 255 {
-        return Err(invalid_data("Minecraft 健康检查 Host 长度无效"));
+        return Err(invalid_data("Minecraft Invalid health check host length"));
     }
     let source = backend.local_addr()?;
     let destination = backend.peer_addr()?;
@@ -844,7 +852,7 @@ pub(crate) async fn probe_minecraft_status(
     let port = backend_addr
         .rsplit_once(':')
         .and_then(|(_, port)| port.parse::<u16>().ok())
-        .ok_or_else(|| invalid_data("Minecraft 健康检查后端端口无效"))?;
+        .ok_or_else(|| invalid_data("Minecraft Invalid health check back-end port"))?;
     let mut handshake_payload = Vec::with_capacity(hostname.len() + 16);
     write_varint(0, &mut handshake_payload);
     write_signed_varint(protocol, &mut handshake_payload);
@@ -860,18 +868,18 @@ pub(crate) async fn probe_minecraft_status(
     backend.write_all(&[0x01, 0x00]).await?;
     let response = read_packet(backend, MAX_STATUS_PACKET).await?;
     let response_json = packet_string(&response, 0)
-        .ok_or_else(|| invalid_data("Minecraft 健康检查 Status Response 无效"))?;
+        .ok_or_else(|| invalid_data("Minecraft Health Check Status Response is invalid"))?;
     let response: Value = serde_json::from_str(response_json)
-        .map_err(|_| invalid_data("Minecraft 健康检查 Status JSON 无效"))?;
-    let root = response
-        .as_object()
-        .ok_or_else(|| invalid_data("Minecraft 健康检查 Status JSON 顶层不是对象"))?;
+        .map_err(|_| invalid_data("Minecraft Health check Status JSON Invalid"))?;
+    let root = response.as_object().ok_or_else(|| {
+        invalid_data("Minecraft Health Check Status JSON Top Level Is Not an Object")
+    })?;
     if !root.get("version").is_some_and(Value::is_object)
         || !root.get("players").is_some_and(Value::is_object)
         || !root.contains_key("description")
     {
         return Err(invalid_data(
-            "Minecraft 健康检查 Status JSON 缺少 version、players 或 description",
+            "Minecraft Health check Status JSON Missing version, players or description",
         ));
     }
 
@@ -886,12 +894,12 @@ pub(crate) async fn probe_minecraft_status(
     let pong = read_packet(backend, MAX_HANDSHAKE_PACKET).await?;
     let mut cursor = 0;
     let packet_length =
-        read_varint(&pong, &mut cursor).ok_or_else(|| invalid_data("Pong 长度无效"))?;
+        read_varint(&pong, &mut cursor).ok_or_else(|| invalid_data("Pong Length invalid"))?;
     if cursor.checked_add(packet_length) != Some(pong.len())
         || read_varint(&pong, &mut cursor) != Some(1)
         || pong.get(cursor..) != Some(PING_VALUE.to_be_bytes().as_slice())
     {
-        return Err(invalid_data("Minecraft 健康检查 Pong 不匹配"));
+        return Err(invalid_data("Minecraft Health check Pong does not match"));
     }
     Ok(())
 }
@@ -923,7 +931,7 @@ fn default_fallback_status(protocol: i32) -> Value {
     json!({
         "version": { "name": "§cBackend offline", "protocol": protocol },
         "players": { "max": 0, "online": 0, "sample": [] },
-        "description": { "text": "§c后端服务器暂时离线，请稍后重试。" },
+        "description": { "text": "§cBackend servers are temporarily offline, please try again later." },
     })
 }
 
@@ -948,7 +956,7 @@ fn apply_status_fields(
 ) -> io::Result<()> {
     let root = response
         .as_object_mut()
-        .ok_or_else(|| invalid_data("Status JSON 顶层不是对象"))?;
+        .ok_or_else(|| invalid_data("Status JSON Top level is not an object"))?;
     if let Some(motd) = motd {
         root.insert("description".to_string(), parse_text_component(motd));
     }
@@ -957,7 +965,7 @@ fn apply_status_fields(
             .entry("version")
             .or_insert_with(|| json!({}))
             .as_object_mut()
-            .ok_or_else(|| invalid_data("Status JSON version 不是对象"))?;
+            .ok_or_else(|| invalid_data("Status JSON version Not an object"))?;
         if let Some(version_name) = version_name {
             version.insert("name".to_string(), json!(version_name));
         }
@@ -970,7 +978,7 @@ fn apply_status_fields(
             .entry("players")
             .or_insert_with(|| json!({ "sample": [] }))
             .as_object_mut()
-            .ok_or_else(|| invalid_data("Status JSON players 不是对象"))?;
+            .ok_or_else(|| invalid_data("Status JSON players Not an object"))?;
         if let Some(online) = online {
             players.insert("online".to_string(), json!(online));
         }
@@ -1021,7 +1029,7 @@ fn parse_text_component(message: &str) -> Value {
 
 fn string_packet(packet_id: usize, value: &str) -> io::Result<Vec<u8>> {
     if value.len() > 32_767 {
-        return Err(invalid_data("Minecraft 字符串超过 32767 字节"));
+        return Err(invalid_data("Minecraft The string exceeds 32767 bytes"));
     }
     let mut payload = Vec::with_capacity(value.len() + 10);
     write_varint(packet_id, &mut payload);
@@ -1241,7 +1249,7 @@ mod tests {
         let routes = vec![
             RuleConfig {
                 id: "exact".to_string(),
-                name: "精确".to_string(),
+                name: "Exact".to_string(),
                 host: vec!["play.example.com".to_string()],
                 backend: vec!["10.0.0.2:25565".to_string()],
                 modify_virtual_host: false,
@@ -1250,7 +1258,7 @@ mod tests {
             },
             RuleConfig {
                 id: "wildcard".to_string(),
-                name: "通配".to_string(),
+                name: "Match".to_string(),
                 host: vec!["*.example.com".to_string()],
                 backend: vec!["10.0.0.1:25565".to_string()],
                 modify_virtual_host: false,
@@ -1259,7 +1267,7 @@ mod tests {
             },
             RuleConfig {
                 id: "default".to_string(),
-                name: "兜底".to_string(),
+                name: "Bottom".to_string(),
                 host: vec!["*".to_string()],
                 backend: vec!["10.0.0.3:25565".to_string()],
                 modify_virtual_host: false,

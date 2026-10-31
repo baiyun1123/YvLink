@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>YvLink API 文档</title>
+  <title>YvLink API reference</title>
   <style>
     :root{--bg:#080b11;--panel:#101620;--line:#263142;--text:#edf3fa;--muted:#8b98aa;--green:#48d7a4;--blue:#6d8cff;--red:#f1727b}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -25,65 +25,65 @@
 <div class="layout">
   <aside class="side">
     <div class="brand"><span class="mark">API</span><div><h1>YvLink</h1><p>CONTROL INTERFACE</p></div></div>
-    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="检索接口或字段"></div>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Search endpoints and fields"></div>
     <nav id="toc">
-      <a href="#auth">认证说明</a>
-      <a href="#health">健康检查</a>
-      <a href="#session">认证检查</a>
-      <a href="#status">运行状态</a>
-      <a href="#updates">自动更新状态</a>
-      <a href="#crossplay-get">读取互通状态</a>
-      <a href="#crossplay-put">修改互通配置</a>
-      <a href="#config-get">读取配置</a>
-      <a href="#config-put">修改配置</a>
-      <a href="#rules-get">规则列表</a>
-      <a href="#rules-post">新建规则</a>
-      <a href="#rules-put">修改规则</a>
-      <a href="#rules-delete">删除规则</a>
-      <a href="#errors">错误码</a>
+      <a href="#auth">Authentication</a>
+      <a href="#health">Health check</a>
+      <a href="#session">Session check</a>
+      <a href="#status">Runtime status</a>
+      <a href="#updates">Automatic updates</a>
+      <a href="#crossplay-get">Crossplay status</a>
+      <a href="#crossplay-put">Update crossplay</a>
+      <a href="#config-get">Read configuration</a>
+      <a href="#config-put">Update configuration</a>
+      <a href="#rules-get">List routes</a>
+      <a href="#rules-post">Create route</a>
+      <a href="#rules-put">Update route</a>
+      <a href="#rules-delete">Delete route</a>
+      <a href="#errors">Error codes</a>
     </nav>
   </aside>
   <main>
     <header class="hero">
-      <h1>管理 API 文档</h1>
-      <p>用于查询 Minecraft Java TCP 转发状态、读取实时流量指标，以及在线管理转发规则和全局参数。管理接口默认只通过同源 HTTPS 页面访问。</p>
+      <h1>Management API reference</h1>
+      <p>Query Minecraft Java proxy status and traffic metrics, and manage routes and global settings. By default, the management API is exposed through the same-origin HTTPS console.</p>
       <div class="meta"><span class="pill">Base URL: /api/v1</span><span class="pill">JSON</span><span class="pill">Bearer Token</span><span class="pill">v0.15.0</span></div>
     </header>
 
-    <section id="auth" data-search="认证 bearer token authorization 管理令牌">
-      <h2>认证说明</h2>
-      <div class="note">除 <code>/healthz</code> 外，所有接口都必须携带 <code>Authorization: Bearer &lt;管理令牌&gt;</code>。令牌来自服务端环境变量 <code>MC_PROXY_ADMIN_TOKEN</code>，最少 32 个字符。</div>
+    <section id="auth" data-search="Authentication bearer token authorization management token">
+      <h2>Authentication</h2>
+      <div class="note">Every endpoint except <code>/healthz</code> requires <code>Authorization: Bearer &lt;admin-token&gt;</code>. Set the token with the server-side <code>MC_PROXY_ADMIN_TOKEN</code> environment variable; it must contain at least 32 characters.</div>
       <pre>Authorization: Bearer your-admin-token
 Content-Type: application/json</pre>
     </section>
 
-    <section class="endpoint" id="health" data-search="健康检查 healthz nginx 无认证">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/healthz</span><h3>健康检查</h3></div>
+    <section class="endpoint" id="health" data-search="Health Check healthz nginx No certification">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/healthz</span><h3>Health check</h3></div>
       <div class="endpoint-body">
-        <p>供 Nginx、systemd 或监控系统确认管理 HTTP 服务能够响应。不需要认证。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>HTTP/1.1 200 OK
+        <p>Returns a simple response for Nginx, systemd, or monitoring. YvLink does not require a Bearer token for this endpoint.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>HTTP/1.1 200 OK
 ok</pre>
-        <div class="label">错误码</div><p>服务不可用时由上游返回 502 或连接失败。</p>
+        <div class="label">Errors</div><p>An upstream proxy may return <code>502</code> when the service is unavailable.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="session" data-search="认证检查 session token 登录">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/session</span><h3>检查管理令牌</h3></div>
+    <section class="endpoint" id="session" data-search="Authentication check session token login">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/session</span><h3>Check admin token</h3></div>
       <div class="endpoint-body">
-        <p>登录页面使用该接口验证令牌，不创建服务器端会话。</p>
-        <div class="label">请求参数</div><p>仅 Authorization 请求头。</p>
-        <div class="label">成功响应</div><pre>{"ok":true,"data":{"authenticated":true}}</pre>
-        <div class="label">错误码</div><p><code>401</code>：令牌缺失或不匹配。</p>
+        <p>The login page uses this interface to authenticate the token without creating a server-side session.</p>
+        <div class="label">Request parameters</div><p>Authorization request header only.</p>
+        <div class="label">Successful response</div><pre>{"ok":true,"data":{"authenticated":true}}</pre>
+        <div class="label">Errors</div><p><code>401</code>: Missing or invalid token.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="status" data-search="状态 status 流量 并发 upload download metrics failures uptime 健康检查 health backend">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/status</span><h3>读取运行状态</h3></div>
+    <section class="endpoint" id="status" data-search="status status traffic concurrent upload download metrics failures uptime health check health backend">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/status</span><h3>Read runtime status</h3></div>
       <div class="endpoint-body">
-        <p>返回实例运行时间、单一 Minecraft 监听入口的聚合指标，以及按顺序生效的 host 路由状态。上传/下载字节会在数据成功写入另一端后实时累加。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{
+        <p>Returns uptime, aggregate metrics, and route state. Upload and download byte counts increase after data is successfully written to the peer.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>{
   "ok": true,
   "data": {
     "version": "0.15.0",
@@ -116,7 +116,7 @@ ok</pre>
     "rules": [
       {
         "id": "play",
-        "name": "主服",
+         "name": "Survival",
         "host": ["play.example.com", "*.play.example.com"],
         "backend": ["backend-a.example.com:25565", "backend-b.example.com:25565"],
         "strategy": "least-connections",
@@ -135,14 +135,14 @@ ok</pre>
         "status": {
           "mode": "backend",
           "cache_ttl_secs": 60,
-          "motd": "§a欢迎来到主服",
+           "motd": "§aWelcome to Survival",
           "version_name": null,
           "protocol": null,
           "online": null,
           "max": null,
           "fallback": {
-            "motd": "§c后端暂时离线",
-            "version_name": "维护中",
+            "motd": "§cBackend temporarily offline",
+            "version_name": "Maintenance",
             "protocol": -1,
             "online": 0,
             "max": 100
@@ -150,7 +150,7 @@ ok</pre>
         },
         "whitelist_enabled": true,
         "whitelist": ["Alice", "Bob"],
-        "whitelist_message": "§c你不在此服务器的白名单中。",
+        "whitelist_message": "§cYou are not in the whitelist of this server.",
         "enabled": true,
         "running": true,
         "backend_health": [
@@ -161,70 +161,70 @@ ok</pre>
     ]
   }
 }</pre>
-        <div class="label">模组握手指标</div>
+        <div class="label">Mod loader handshake counters</div>
         <table>
-          <tr><th>字段</th><th>说明</th></tr>
-          <tr><td><code>unmarked_handshakes</code></td><td>没有加载器 Host 标记的握手；原版和 Fabric 初始握手无法可靠区分，因此合并统计。</td></tr>
-          <tr><td><code>legacy_forge_handshakes</code></td><td>带独立 <code>FML</code> 标记的旧版 Forge 握手。</td></tr>
-          <tr><td><code>modern_forge_login_handshakes</code></td><td>带 <code>FML2</code> 或 <code>FML3</code> 标记、在 Login 阶段协商的 Forge 握手。</td></tr>
-          <tr><td><code>configuration_forge_handshakes</code></td><td>带 <code>FORGE</code> 或 NAT 版本后缀的 1.20.2+ Configuration 系握手；可包含 Forge/NeoForge 客户端。</td></tr>
+          <tr><th>Field</th><th>Description</th></tr>
+          <tr><td><code>unmarked_handshakes</code></td><td>Handshakes without a mod loader marker in the host field. Vanilla and Fabric cannot be reliably distinguished here.</td></tr>
+          <tr><td><code>legacy_forge_handshakes</code></td><td>Legacy Forge handshakes marked with <code>FML</code>.</td></tr>
+          <tr><td><code>modern_forge_login_handshakes</code></td><td>Forge handshakes marked with <code>FML2</code> or <code>FML3</code>, negotiated during Login.</td></tr>
+          <tr><td><code>configuration_forge_handshakes</code></td><td>Forge or NeoForge handshakes marked with <code>FORGE</code> or a 1.20.2+ Configuration suffix.</td></tr>
         </table>
-        <p>这些计数只识别初始 Host 标记，不解码 Login、Configuration、Play 或加密后的模组负载，也不等同于成功登录人数。</p>
-        <div class="label">主动健康字段</div>
-        <p><code>health</code> 为 <code>unknown</code>、<code>healthy</code> 或 <code>unhealthy</code>；<code>last_checked_secs_ago</code> 是距最近完成探测的秒数。健康检查总成功/失败数与每后端连续成功/失败次数分别用于运行监控和阈值状态判断。<code>tcp</code> 成功只代表端口可达；<code>minecraft-status</code> 成功表示已完成 Java Handshake、Status JSON 结构校验及 Ping/Pong，但不代表玩家能够登录或模组协商成功。</p>
-        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+        <p>These counters inspect only the initial handshake host marker. They do not count successful logins or decode later protocol phases.</p>
+        <div class="label">Backend health fields</div>
+        <p><code>health</code> is <code>unknown</code>, <code>healthy</code>, or <code>unhealthy</code>. <code>last_checked_secs_ago</code> measures time since the last completed probe. Total and consecutive success/failure counters support monitoring and health thresholds. A successful <code>tcp</code> probe confirms only that the port is reachable; a successful <code>minecraft-status</code> probe also validates the Java handshake, Status JSON, and Ping/Pong. Neither guarantees that a player can log in.</p>
+        <div class="label">Errors</div><p><code>401</code>:Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="updates" data-search="自动更新 update systemd release 下载 回滚 状态">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/updates</span><h3>读取自动更新状态</h3></div>
+    <section class="endpoint" id="updates" data-search="Automatic update systemd release Download rollback status">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/updates</span><h3>Read automatic update status</h3></div>
       <div class="endpoint-body">
-        <p>读取 systemd 自动更新器最后写入的状态文件，不会从管理 API 触发下载、重启或升级。控制台据此在更新下载、完成、失败或回滚时显示提示弹窗。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{"ok":true,"data":{"current_version":"0.15.0","status":{"state":"up-to-date","message":"当前已是 v0.15.0。"}}}</pre>
-        <div class="label">状态字段</div>
-        <table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody>
-          <tr><td><code>current_version</code></td><td>当前正在运行的 YvLink 版本。</td></tr>
-          <tr><td><code>status.state</code></td><td><code>up-to-date</code>、<code>downloading</code>、<code>updated</code>、<code>deferred</code>、<code>failed</code>、<code>rolled-back</code> 或 <code>unknown</code>。</td></tr>
-          <tr><td><code>status.message</code></td><td>可直接展示给管理员的最近一次更新说明。</td></tr>
+        <p>Reads the latest status file written by the systemd updater. This API does not download updates or restart the service. The console uses the result to show completed, failed, and rolled-back updates.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>{"ok":true,"data":{"current_version":"0.15.0","status":{"state":"up-to-date","message":"Already up to date: v0.15.0."}}}</pre>
+        <div class="label">Status fields</div>
+        <table><thead><tr><th>Field</th><th>Description</th></tr></thead><tbody>
+          <tr><td><code>current_version</code></td><td>Current running version of YvLink.</td></tr>
+          <tr><td><code>status.state</code></td><td><code>up-to-date</code>,<code>downloading</code>,<code>updated</code>,<code>deferred</code>,<code>failed</code>,<code>rolled-back</code> or <code>unknown</code>.</td></tr>
+          <tr><td><code>status.message</code></td><td>Latest updater message shown to administrators.</td></tr>
         </tbody></table>
-        <div class="label">错误码</div><p><code>401</code>：认证失败。更新器尚未执行或状态文件不可读时仍返回 <code>200</code>，并以 <code>unknown</code> 说明原因。</p>
+        <div class="label">Errors</div><p><code>401</code>: Authentication failed. If the updater has not run or its status file is unreadable, the API returns <code>200</code> with <code>status.state="unknown"</code> and an explanatory message.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="via-get" data-search="vialite via Java 协议版本兼容 后端 sidecar 状态">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/via</span><h3>读取 ViaLite 配置与运行状态</h3></div>
+    <section class="endpoint" id="via-get" data-search="vialite via Java protocol backend subprocess status">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/via</span><h3>Read ViaLite configuration and status</h3></div>
       <div class="endpoint-body">
-        <p>读取受管 ViaLite 的 Java 后端兼容配置和实际 subprocess 状态。ViaLite 位于已选路的 YvLink 与真实后端之间；<code>running=true</code> 才会把后端连接拨到回环翻译入口。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{"ok":true,"data":{"config":{"enabled":true,"binary_path":"/opt/mc-proxy/vialite/vialite","runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"},"runtime":{"available":true,"enabled":true,"running":true,"managed_backends":2,"error":null}}}</pre>
-        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+        <p>Returns the managed ViaLite configuration and subprocess status. ViaLite sits between YvLink routing and the real Java backend. When <code>running=true</code>, backend connections use its loopback translation listeners.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>{"ok":true,"data":{"config":{"enabled":true,"binary_path":"/opt/mc-proxy/vialite/vialite","runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"},"runtime":{"available":true,"enabled":true,"running":true,"managed_backends":2,"error":null}}}</pre>
+        <div class="label">Errors</div><p><code>401</code>:Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="via-put" data-search="修改 vialite via Java 协议版本兼容 后端 sidecar">
-      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/via</span><h3>修改 ViaLite 配置</h3></div>
+    <section class="endpoint" id="via-put" data-search="Modify vialite via Java protocol version compatible backend sidecar">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/via</span><h3>Modify ViaLite configuration</h3></div>
       <div class="endpoint-body">
-        <p>原子保存 ViaLite 配置，并重建隔离子进程及每个唯一后端的回环入口。运行时启动失败不会删除已保存的配置；<code>runtime.error</code> 会说明原因，代理会保守直连真实后端。</p>
-        <div class="label">请求体参数</div>
-        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
-          <tr><td><code>enabled</code></td><td>布尔</td><td>是否启用 ViaLite 后端侧 Java 协议转换。</td></tr>
-          <tr><td><code>binary_path</code></td><td>字符串/null</td><td>启用时必填，必须为绝对路径；由部署脚本校验下载的 <code>vialite</code> 原生可执行文件。</td></tr>
-          <tr><td><code>runtime_dir</code></td><td>字符串</td><td>临时原生 JSON 配置目录，生产 systemd 默认 <code>/run/mc-proxy/vialite</code>。</td></tr>
-          <tr><td><code>gate_protocol</code></td><td>字符串</td><td>YvLink 到 ViaLite 的协议，通常为 <code>auto</code>。</td></tr>
-          <tr><td><code>backend_version</code></td><td>字符串</td><td>ViaLite 到后端的协议；<code>auto</code> 使用检测，后端屏蔽 Status 时应显式指定。</td></tr>
+        <p>Atomically saves the ViaLite configuration and rebuilds a separate subprocess and loopback listener for each unique backend. If startup fails, the saved configuration remains and <code>runtime.error</code> reports the cause; connections fall back to the real backend.</p>
+        <div class="label">Request Body Parameters</div>
+        <table><thead><tr><th>Fields</th><th>Type</th><th>Constraints and description</th></tr></thead><tbody>
+          <tr><td><code>enabled</code></td><td>Boolean</td><td>Whether to enable ViaLite backend Java protocol conversion.</td></tr>
+          <tr><td><code>binary_path</code></td><td>String/null</td><td>Absolute path to the native ViaLite executable when enabled.</td></tr>
+          <tr><td><code>runtime_dir</code></td><td>String</td><td>Directory for temporary JSON configuration; the production systemd default is <code>/run/mc-proxy/vialite</code>.</td></tr>
+          <tr><td><code>gate_protocol</code></td><td>String</td><td>Protocol used from YvLink to ViaLite, usually <code>auto</code>.</td></tr>
+          <tr><td><code>backend_version</code></td><td>String</td><td>Protocol used from ViaLite to the backend. <code>auto</code> detects the backend version; set it explicitly if detection is unsuitable.</td></tr>
         </tbody></table>
-        <div class="label">请求示例</div><pre>{"enabled":true,"binary_path":"/opt/mc-proxy/vialite/vialite","runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"}</pre>
-        <div class="label">错误码</div><p><code>400</code>：路径不是绝对路径、协议标识非法，或存在启用 <code>proxy_protocol</code> 的路由。<code>401</code>：认证失败。</p>
+        <div class="label">Example request</div><pre>{"enabled":true,"binary_path":"/opt/mc-proxy/vialite/vialite","runtime_dir":"/run/mc-proxy/vialite","gate_protocol":"auto","backend_version":"auto"}</pre>
+        <div class="label">Errors</div><p><code>400</code>: Invalid path or protocol, or a route has PROXY Protocol enabled. <code>401</code>: Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="crossplay-get" data-search="基岩互通 crossplay geyser bedrock udp raknet 状态">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/crossplay</span><h3>读取基岩互通配置与状态</h3></div>
+    <section class="endpoint" id="crossplay-get" data-search="Bedrock crossplay geyser bedrock udp raknet status">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/crossplay</span><h3>Read Bedrock crossplay status</h3></div>
       <div class="endpoint-body">
-        <p>返回 Geyser 互通预期配置与托管运行状态，并在启用时向 Bedrock UDP 入口发送真实 RakNet Unconnected Ping。<code>online=true</code> 才表示翻译器实际响应；该接口不会把普通 UDP 可达误报为 Geyser 在线。<code>runtime</code> 描述 provider 为 <code>geyserlite</code> 时由 mc-proxy 托管的翻译层：<code>available</code> 表示构建是否启用 GeyserLite 特性，<code>running</code> 表示托管实例是否存活，<code>error</code> 记录启动或退出故障。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{
+        <p>Returns crossplay configuration and Geyser runtime status. When enabled, YvLink sends a RakNet Unconnected Ping to the Bedrock UDP port. <code>online=true</code> means the translator replied. For hosted GeyserLite, <code>runtime.available</code> indicates build support, <code>runtime.running</code> indicates whether it is active, and <code>runtime.error</code> records startup or exit failures.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>{
   "ok": true,
   "data": {
     "config": {
@@ -263,45 +263,45 @@ ok</pre>
     }
   }
 }</pre>
-        <div class="label">错误码</div><p><code>401</code>：认证失败。Geyser 离线仍返回 <code>200</code>，并通过 <code>online=false</code> 和 <code>error</code> 描述探测结果。</p>
+        <div class="label">Errors</div><p><code>401</code>: Authentication failed. When Geyser is offline, the endpoint still returns <code>200</code> with <code>online=false</code> and an error description.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="crossplay-put" data-search="修改基岩互通 crossplay put geyser floodgate online offline">
-      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/crossplay</span><h3>修改基岩互通配置</h3></div>
+    <section class="endpoint" id="crossplay-put" data-search="Alter the base rock. crossplay put geyser floodgate online offline">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/crossplay</span><h3>Update Bedrock crossplay</h3></div>
       <div class="endpoint-body">
-        <p>校验并原子持久化互通配置，然后立即执行一次 RakNet 健康探测。provider 为 <code>external</code> 时 Geyser 是独立翻译器，必须另外使用相同的监听与 Java 目标参数；provider 为 <code>geyserlite</code> 时 mc-proxy 会直接托管启动 GeyserLite，启动失败会记录在 <code>runtime.error</code> 而不会回滚已保存配置。未启用对应构建特性时（<code>available=false</code>），geyserlite 模式不会启动翻译层。</p>
-        <div class="label">请求体参数</div>
-        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
-          <tr><td><code>enabled</code></td><td>布尔</td><td>是否启用互通健康监控。</td></tr>
-          <tr><td><code>provider</code></td><td>枚举</td><td><code>external</code>（Geyser Standalone 独立进程）或 <code>geyserlite</code>（由代理托管）。</td></tr>
-          <tr><td><code>bedrock_listen</code></td><td>SocketAddr</td><td>预期 Geyser Bedrock UDP 监听地址，端口不能为 0。</td></tr>
-          <tr><td><code>java_address</code></td><td>字符串</td><td>Geyser 连接的 Java 主机；启用互通时必须匹配一条已启用且 <code>crossplay_enabled=true</code> 的 mc-proxy Host 路由，并在内部解析到本机。</td></tr>
-          <tr><td><code>java_port</code></td><td>整数</td><td>1 到 65535，通常为 mc-proxy Java 入口端口。</td></tr>
-          <tr><td><code>auth_type</code></td><td>枚举</td><td><code>online</code>、<code>floodgate</code> 或 <code>offline</code>。公网不建议 offline；Floodgate 需要可控后端配套安装。</td></tr>
-          <tr><td><code>geyserlite</code></td><td>对象</td><td>provider 为 <code>geyserlite</code> 时的托管参数，字段见下表。</td></tr>
+        <p>Validates and atomically saves crossplay settings, then immediately runs a RakNet health probe. <code>external</code> uses a separate Geyser Standalone process; <code>geyserlite</code> starts a translator managed by YvLink. A startup failure is reported in <code>runtime.error</code> without reverting the saved configuration. GeyserLite requires a build with <code>available=true</code>.</p>
+        <div class="label">Request Body Parameters</div>
+        <table><thead><tr><th>Fields</th><th>Type</th><th>Constraints and description</th></tr></thead><tbody>
+          <tr><td><code>enabled</code></td><td>Boolean</td><td>Enable crossplay health monitoring.</td></tr>
+          <tr><td><code>provider</code></td><td>Enum</td><td><code>external</code> for a separate Geyser Standalone process, or <code>geyserlite</code> for the hosted translator.</td></tr>
+          <tr><td><code>bedrock_listen</code></td><td>SocketAddr</td><td>Expected Geyser Bedrock UDP listen address; port must be nonzero.</td></tr>
+          <tr><td><code>java_address</code></td><td>String</td><td>Hostname used by Geyser for Java. It must match an enabled route with <code>crossplay_enabled=true</code> and resolve locally to YvLink.</td></tr>
+          <tr><td><code>java_port</code></td><td>Integer</td><td>1–65535; usually the YvLink Java listen port.</td></tr>
+          <tr><td><code>auth_type</code></td><td>Enum</td><td><code>online</code>, <code>floodgate</code>, or <code>offline</code>. Floodgate requires compatible backend setup.</td></tr>
+          <tr><td><code>geyserlite</code></td><td>Object</td><td>Managed translator settings used when provider is <code>geyserlite</code>.</td></tr>
         </tbody></table>
-        <div class="label">geyserlite 参数</div>
-        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
-          <tr><td><code>mode</code></td><td>枚举</td><td><code>embedded</code>（进程内加载，默认）或 <code>subprocess</code>（托管子进程）。</td></tr>
-          <tr><td><code>library_path</code></td><td>字符串/null</td><td>仅 embedded：libgeyserlite.so 显式路径；与 binary_path 互斥。</td></tr>
-          <tr><td><code>binary_path</code></td><td>字符串/null</td><td>仅 subprocess：原生可执行文件路径；与 library_path 互斥。</td></tr>
-          <tr><td><code>offline</code></td><td>布尔</td><td>禁止自动下载；必须通过路径、GEYSERLITE_LIBRARY 环境变量或内嵌特性提供原生库。</td></tr>
-          <tr><td><code>motd_line1</code>/<code>motd_line2</code></td><td>字符串</td><td>Bedrock 服务器列表 MOTD 两行文本。</td></tr>
-          <tr><td><code>floodgate_key</code></td><td>字符串/null</td><td>仅 auth_type=floodgate：16 字节 AES-128 密钥的 32 位十六进制字符串，敏感。</td></tr>
+        <div class="label">geyserlite Parameters</div>
+        <table><thead><tr><th>Fields</th><th>Type</th><th>Constraints and description</th></tr></thead><tbody>
+          <tr><td><code>mode</code></td><td>Enum</td><td><code>embedded</code> (in process, default) or <code>subprocess</code> (isolated process).</td></tr>
+          <tr><td><code>library_path</code></td><td>String/null</td><td>Explicit <code>libgeyserlite.so</code> path for embedded mode; mutually exclusive with <code>binary_path</code>.</td></tr>
+          <tr><td><code>binary_path</code></td><td>String/null</td><td>Native executable path for subprocess mode; mutually exclusive with <code>library_path</code>.</td></tr>
+          <tr><td><code>offline</code></td><td>Boolean</td><td>Disallow automatic downloads; a local library or executable must be available.</td></tr>
+          <tr><td><code>motd_line1</code>/<code>motd_line2</code></td><td>String</td><td>Two lines of the Bedrock server list MOTD.</td></tr>
+          <tr><td><code>floodgate_key</code></td><td>String/null</td><td>For Floodgate authentication: a sensitive 16-byte AES-128 key.</td></tr>
         </tbody></table>
-        <div class="label">请求示例</div><pre>{"enabled":true,"provider":"geyserlite","bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online","geyserlite":{"mode":"embedded","library_path":null,"binary_path":null,"offline":false,"motd_line1":"YvLink","motd_line2":"Bedrock via GeyserLite","floodgate_key":null}}</pre>
-        <div class="label">成功响应</div><p><code>200</code>，结构与读取接口相同。</p>
-        <div class="label">错误码</div><p><code>400</code>：地址、端口、模式与路径冲突、Floodgate 密钥非法、Java 地址未匹配已允许互通的路由或配置无法持久化。<code>401</code>：认证失败。GeyserLite 启动失败仍返回 <code>200</code>，故障体现在 <code>runtime.error</code>。</p>
+        <div class="label">Example request</div><pre>{"enabled":true,"provider":"geyserlite","bedrock_listen":"0.0.0.0:19132","java_address":"bedrock.example.com","java_port":25565,"auth_type":"online","geyserlite":{"mode":"embedded","library_path":null,"binary_path":null,"offline":false,"motd_line1":"YvLink","motd_line2":"Bedrock via GeyserLite","floodgate_key":null}}</pre>
+        <div class="label">Successful response</div><p><code>200</code>: Same structure as the GET response.</p>
+        <div class="label">Errors</div><p><code>400</code>: Invalid address, port, mode, paths, Floodgate key, Java route, or persistence failure. <code>401</code>: Authentication failed. GeyserLite startup failure returns <code>200</code> with details in <code>runtime.error</code>.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="config-get" data-search="读取配置 config settings rules admin">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/config</span><h3>读取完整配置</h3></div>
+    <section class="endpoint" id="config-get" data-search="Read Configuration config settings rules admin">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/config</span><h3>Read configuration</h3></div>
       <div class="endpoint-body">
-        <p>返回管理监听地址、全局转发参数和规则列表。响应不包含管理令牌。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{
+        <p>Returns global settings and all routes. The admin token is excluded.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>{
   "ok": true,
   "data": {
     "admin": {"listen":"127.0.0.1:18080"},
@@ -324,108 +324,108 @@ ok</pre>
     "rules": []
   }
 }</pre>
-        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+        <div class="label">Errors</div><p><code>401</code>:Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="config-put" data-search="修改配置 config put timeout buffer nodelay reuseport">
-      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/config</span><h3>修改全局参数</h3></div>
+    <section class="endpoint" id="config-put" data-search="Modify Configuration config put timeout buffer nodelay reuseport">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/config</span><h3>Update global settings</h3></div>
       <div class="endpoint-body">
-        <p>替换全局入口和转发参数，校验通过后重启唯一的 Minecraft 监听器并原子写入 TOML。现有连接在宽限期内优雅结束。</p>
-        <div class="label">请求体参数</div>
-        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
-          <tr><td><code>listen</code></td><td>SocketAddr</td><td>所有 host 路由共用的 Minecraft Java 监听地址。</td></tr>
-          <tr><td><code>proxy_enabled</code></td><td>布尔</td><td>是否监听 Minecraft 入口。</td></tr>
-          <tr><td><code>max_connections</code></td><td>整数</td><td>入口全局最大并发，1 到 1000000。</td></tr>
-          <tr><td><code>connect_timeout_ms</code></td><td>整数</td><td>大于 0，后端连接超时。</td></tr>
-          <tr><td><code>handshake_timeout_ms</code></td><td>整数</td><td>大于 0，读取 Minecraft 握手域名的超时。</td></tr>
-          <tr><td><code>shutdown_grace_secs</code></td><td>整数</td><td>1 到 300。</td></tr>
-          <tr><td><code>copy_buffer_bytes</code></td><td>整数</td><td>4096 到 1048576。</td></tr>
-          <tr><td><code>socket_buffer_bytes</code></td><td>整数</td><td>0 到 16777216；0 使用系统默认。</td></tr>
-          <tr><td><code>listen_backlog</code></td><td>整数</td><td>1 到 65535。</td></tr>
-          <tr><td><code>tcp_nodelay</code></td><td>布尔</td><td>是否启用 TCP_NODELAY。</td></tr>
-          <tr><td><code>reuse_port</code></td><td>布尔</td><td>Linux 多实例共享端口时使用。</td></tr>
-          <tr><td><code>stats_interval_secs</code></td><td>整数</td><td>大于 0。</td></tr>
+        <p>Validates and atomically saves global forwarding settings, then restarts the shared Minecraft listener. Existing connections close within the configured grace period.</p>
+        <div class="label">Request Body Parameters</div>
+        <table><thead><tr><th>Fields</th><th>Type</th><th>Constraints and description</th></tr></thead><tbody>
+          <tr><td><code>listen</code></td><td>SocketAddr</td><td>Java listen address shared by all routes.</td></tr>
+          <tr><td><code>proxy_enabled</code></td><td>Boolean</td><td>Whether the Minecraft listener is enabled.</td></tr>
+          <tr><td><code>max_connections</code></td><td>Integer</td><td>Global concurrent connection limit, 1–1,000,000.</td></tr>
+          <tr><td><code>connect_timeout_ms</code></td><td>Integer</td><td>Backend connection timeout; greater than zero.</td></tr>
+          <tr><td><code>handshake_timeout_ms</code></td><td>Integer</td><td>Timeout for reading the Minecraft handshake; greater than zero.</td></tr>
+          <tr><td><code>shutdown_grace_secs</code></td><td>Integer</td><td>1–300 seconds.</td></tr>
+          <tr><td><code>copy_buffer_bytes</code></td><td>Integer</td><td>4,096–1,048,576 bytes.</td></tr>
+          <tr><td><code>socket_buffer_bytes</code></td><td>Integer</td><td>0–16,777,216 bytes; zero uses the system default.</td></tr>
+          <tr><td><code>listen_backlog</code></td><td>Integer</td><td>1–65,535.</td></tr>
+          <tr><td><code>tcp_nodelay</code></td><td>Boolean</td><td>Enable TCP_NODELAY.</td></tr>
+          <tr><td><code>reuse_port</code></td><td>Boolean</td><td>Allow multiple listeners to share a port on supported systems.</td></tr>
+          <tr><td><code>stats_interval_secs</code></td><td>Integer</td><td>Metrics logging interval; greater than zero.</td></tr>
         </tbody></table>
-        <div class="label">请求示例</div><pre>{"listen":"0.0.0.0:25565","proxy_enabled":true,"max_connections":10000,"connect_timeout_ms":5000,"handshake_timeout_ms":5000,"shutdown_grace_secs":30,"copy_buffer_bytes":32768,"socket_buffer_bytes":1048576,"listen_backlog":4096,"tcp_nodelay":true,"reuse_port":false,"stats_interval_secs":10}</pre>
-        <div class="label">成功响应</div><p><code>200</code>，data 为更新后的完整配置。</p>
-        <div class="label">错误码</div><p><code>400</code>：参数非法、端口绑定失败或配置无法持久化。<code>401</code>：认证失败。</p>
+        <div class="label">Example request</div><pre>{"listen":"0.0.0.0:25565","proxy_enabled":true,"max_connections":10000,"connect_timeout_ms":5000,"handshake_timeout_ms":5000,"shutdown_grace_secs":30,"copy_buffer_bytes":32768,"socket_buffer_bytes":1048576,"listen_backlog":4096,"tcp_nodelay":true,"reuse_port":false,"stats_interval_secs":10}</pre>
+        <div class="label">Successful response</div><p><code>200</code>: Updated configuration.</p>
+        <div class="label">Errors</div><p><code>400</code>: Invalid settings, listener failure, or persistence failure. <code>401</code>: Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="rules-get" data-search="规则列表 rules get 域名路由 domains 智能分流">
-      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/rules</span><h3>读取规则列表</h3></div>
+    <section class="endpoint" id="rules-get" data-search="Rule list rules get domain name routing domains smart triage">
+      <div class="endpoint-head"><span class="method">GET</span><span class="path">/api/v1/rules</span><h3>List routes</h3></div>
       <div class="endpoint-body">
-        <p>返回已持久化的全部 host → backend 路由。所有规则共用 <code>settings.listen</code>，数组顺序就是匹配顺序。</p>
-        <div class="label">请求参数</div><p>无。</p>
-        <div class="label">成功响应</div><pre>{"ok":true,"data":[{"id":"play","name":"主服","host":["play.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"round-robin","proxy_protocol":"off","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"play.example.com","minecraft_protocol":769},"modify_virtual_host":false,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§a欢迎来到主服","version_name":null,"protocol":null,"online":null,"max":null,"fallback":null},"whitelist_enabled":true,"whitelist":["Alice","Bob"],"whitelist_message":"§c你不在此服务器的白名单中。","crossplay_enabled":true,"enabled":true}]}</pre>
-        <div class="label">错误码</div><p><code>401</code>：认证失败。</p>
+        <p>Returns all persisted host-to-backend routes in matching order. Every route shares <code>settings.listen</code>.</p>
+        <div class="label">Request parameters</div><p>None.</p>
+        <div class="label">Successful response</div><pre>{"ok":true,"data":[{"id":"play","name":"Survival","host":["play.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"round-robin","proxy_protocol":"off","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"play.example.com","minecraft_protocol":769},"modify_virtual_host":false,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§aWelcome to Survival","version_name":null,"protocol":null,"online":null,"max":null,"fallback":null},"whitelist_enabled":true,"whitelist":["Alice","Bob"],"whitelist_message":"§cYou are not in the whitelist of this server.","crossplay_enabled":true,"enabled":true}]}</pre>
+        <div class="label">Errors</div><p><code>401</code>:Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="rules-post" data-search="新建规则 rules post host backend 域名 通配符 单端口 健康检查 health threshold tcp minecraft status ping pong">
-      <div class="endpoint-head"><span class="method post">POST</span><span class="path">/api/v1/rules</span><h3>新建转发规则</h3></div>
+    <section class="endpoint" id="rules-post" data-search="New rule rules post host backend domain name wildcard single port health check health threshold tcp minecraft status ping pong">
+      <div class="endpoint-head"><span class="method post">POST</span><span class="path">/api/v1/rules</span><h3>Create route</h3></div>
       <div class="endpoint-body">
-        <p>新增一条 host → backend 路由并原子持久化。代理读取 Minecraft Java 首个握手包，按规则数组顺序使用第一个匹配项；新规则会自动插入已启用的 <code>*</code> 兜底规则之前。</p>
-        <div class="label">请求体参数</div>
-        <table><thead><tr><th>字段</th><th>类型</th><th>约束与说明</th></tr></thead><tbody>
-          <tr><td><code>id</code></td><td>字符串</td><td>1 到 32 位字母、数字、短横线或下划线，必须唯一。</td></tr>
-          <tr><td><code>name</code></td><td>字符串</td><td>1 到 64 个字符。</td></tr>
-          <tr><td><code>host</code></td><td>字符串数组</td><td>一个或多个握手域名；支持 <code>*</code>、<code>?</code> 通配，不区分大小写。JSON 使用数组。</td></tr>
-          <tr><td><code>backend</code></td><td>字符串数组</td><td>1 到 128 个 <code>主机:端口</code>；TOML 兼容旧版单字符串，JSON API 返回并接收数组。</td></tr>
-          <tr><td><code>strategy</code></td><td>枚举</td><td><code>sequential</code>、<code>random</code>、<code>round-robin</code>、<code>least-connections</code> 或 <code>lowest-latency</code>。</td></tr>
-          <tr><td><code>proxy_protocol</code></td><td>枚举</td><td><code>off</code>、<code>v1</code> 或 <code>v2</code>，默认 <code>off</code>。启用后在 Minecraft 数据前发送连接地址头；后端必须明确支持同一版本，且后端端口应只信任代理来源。TOML 兼容 Gate 风格布尔值：<code>true</code> 等价于 v1。</td></tr>
-          <tr><td><code>health_check</code></td><td>对象</td><td>主动健康检查。<code>mode</code> 为 <code>tcp</code> 或 <code>minecraft-status</code>；后者完成 Java Handshake、Status JSON 与 Ping/Pong 校验。还包含 <code>enabled</code>、1–86400 秒的 <code>interval_secs</code>、100–60000 毫秒且不大于间隔的整次 <code>timeout_ms</code>，以及 1–100 的 <code>unhealthy_threshold</code>/<code>healthy_threshold</code>。默认关闭；全局最多并发 64 个。</td></tr>
-          <tr><td><code>health_check.minecraft_host</code></td><td>字符串或 null</td><td>Status 探测握手 Host，1–255 字节，不能包含通配符、空白或 NUL。null 时优先使用精确路由 Host；通配路由或启用 Host 改写时使用当前后端主机名。</td></tr>
-          <tr><td><code>health_check.minecraft_protocol</code></td><td>整数</td><td>Status 探测握手协议号，范围 0 到 2147483647，默认 769。探测会接受服务端返回的版本不匹配状态，但要求响应包含基础 <code>version</code>、<code>players</code> 与 <code>description</code>。</td></tr>
-          <tr><td><code>modify_virtual_host</code></td><td>布尔</td><td>是否把转发给后端的 Minecraft 握手 Host 改为 backend 的主机名；后端要求固定域名时启用。</td></tr>
-          <tr><td><code>crossplay_enabled</code></td><td>布尔</td><td>是否允许该路由作为全局 Bedrock Crossplay 的 Java 上游，默认 <code>false</code>。全局互通启用时，<code>crossplay.java_address</code> 必须匹配一条已启用且该字段为 <code>true</code> 的规则。</td></tr>
-          <tr><td><code>status</code></td><td>对象或 null</td><td>存在时由代理管理服务器列表响应。<code>mode</code> 为 <code>custom</code> 时完全生成响应；为 <code>backend</code> 时读取后端 JSON，并保留 <code>forgeData</code>、<code>modinfo</code>、favicon、玩家 sample 和其他未知字段。</td></tr>
-          <tr><td><code>status.cache_ttl_secs</code></td><td>整数</td><td>-1 到 86400；后端模式按 backend 与客户端协议号缓存，-1 或 0 不复用缓存。</td></tr>
-          <tr><td><code>status.motd</code> 等覆盖字段</td><td>可空</td><td><code>motd</code>、<code>version_name</code>、<code>protocol</code>、<code>online</code>、<code>max</code>。后端模式中只有非 null 字段会覆盖后端原值。</td></tr>
-          <tr><td><code>status.fallback</code></td><td>对象或 null</td><td>仅后端模式使用；连接、超时或 JSON 解析失败时返回离线状态。字段与上述覆盖字段相同。</td></tr>
-          <tr><td><code>whitelist_enabled</code></td><td>布尔</td><td>是否在 Login Start 阶段执行代理白名单。</td></tr>
-          <tr><td><code>whitelist</code></td><td>字符串数组</td><td>最多 10000 个玩家名，不区分大小写；玩家名为 1 到 16 位字母、数字或下划线。</td></tr>
-          <tr><td><code>whitelist_message</code></td><td>字符串</td><td>非白名单玩家收到的 Login Disconnect 文本组件或 § 格式消息，1 到 1024 个字符。</td></tr>
-          <tr><td><code>enabled</code></td><td>布尔</td><td>是否纳入当前入口的路由表。</td></tr>
+        <p>Creates and atomically saves a host-to-backend route. YvLink uses the first route whose host pattern matches the initial Java handshake. A new route is inserted before an enabled catch-all <code>*</code> route.</p>
+        <div class="label">Request Body Parameters</div>
+        <table><thead><tr><th>Fields</th><th>Type</th><th>Constraints and description</th></tr></thead><tbody>
+          <tr><td><code>id</code></td><td>String</td><td>Unique identifier: 1–32 letters, digits, hyphens, or underscores.</td></tr>
+          <tr><td><code>name</code></td><td>String</td><td>1–64 characters.</td></tr>
+          <tr><td><code>host</code></td><td>String array</td><td>One or more handshake host patterns. <code>*</code> and <code>?</code> wildcards are supported; matching is case insensitive.</td></tr>
+          <tr><td><code>backend</code></td><td>String array</td><td>1–128 <code>host:port</code> addresses. TOML also accepts a legacy single string; the JSON API uses an array.</td></tr>
+          <tr><td><code>strategy</code></td><td>Enumeration</td><td><code>sequential</code>,<code>random</code>,<code>round-robin</code>,<code>least-connections</code> or <code>lowest-latency</code>.</td></tr>
+          <tr><td><code>proxy_protocol</code></td><td>Enum</td><td><code>off</code>, <code>v1</code>, or <code>v2</code> (default: <code>off</code>). The backend must support the selected version. In TOML, legacy <code>true</code> means v1.</td></tr>
+          <tr><td><code>health_check</code></td><td>Object</td><td>Optional active probes. <code>mode</code> is <code>tcp</code> or <code>minecraft-status</code>. Configure <code>enabled</code>, <code>interval_secs</code> (1–86400), <code>timeout_ms</code> (100–60000 and no longer than the interval), and healthy/unhealthy thresholds (1–100). At most 64 probes run concurrently.</td></tr>
+          <tr><td><code>health_check.minecraft_host</code></td><td>String/null</td><td>Handshake host for Status probes, 1–255 bytes, without wildcards, whitespace, or NUL. If omitted, an exact route host is preferred; wildcard routes or host rewriting use the backend hostname.</td></tr>
+          <tr><td><code>health_check.minecraft_protocol</code></td><td>Integer</td><td>Status probe protocol number, 0–2,147,483,647 (default: 769). The returned version may differ, but the response must include <code>version</code>, <code>players</code>, and <code>description</code>.</td></tr>
+          <tr><td><code>modify_virtual_host</code></td><td>Boolean</td><td>Rewrite the forwarded Minecraft handshake host to the backend hostname.</td></tr>
+          <tr><td><code>crossplay_enabled</code></td><td>Boolean</td><td>Allow this route as the Java upstream for global Bedrock crossplay (default: false). <code>crossplay.java_address</code> must match an enabled allowed route.</td></tr>
+          <tr><td><code>status</code></td><td>Object/null</td><td>Optional server list response. <code>custom</code> generates it locally; <code>backend</code> reads backend Status JSON and preserves Forge metadata, favicon, player samples, and unknown fields.</td></tr>
+          <tr><td><code>status.cache_ttl_secs</code></td><td>Integer</td><td>-1–86400. In backend mode, responses are cached by backend and client protocol; -1 or 0 disables reuse.</td></tr>
+          <tr><td>Status override fields</td><td>Optional</td><td><code>motd</code>, <code>version_name</code>, <code>protocol</code>, <code>online</code>, and <code>max</code>. In backend mode, only non-null values override the backend response.</td></tr>
+          <tr><td><code>status.fallback</code></td><td>Object/null</td><td>Fallback response when backend connection, timeout, or JSON parsing fails; uses the same fields as status overrides.</td></tr>
+          <tr><td><code>whitelist_enabled</code></td><td>Boolean</td><td>Check player names against the proxy whitelist during Login Start.</td></tr>
+          <tr><td><code>whitelist</code></td><td>String array</td><td>Up to 10,000 case-insensitive names of 1–16 letters, digits, or underscores.</td></tr>
+          <tr><td><code>whitelist_message</code></td><td>String</td><td>Disconnect message for players outside the whitelist; 1–1024 characters, plain text, § codes, or a JSON text component.</td></tr>
+          <tr><td><code>enabled</code></td><td>Boolean</td><td>Whether this route participates in matching.</td></tr>
         </tbody></table>
-        <div class="label">请求示例</div><pre>{"id":"mod","name":"模组服","host":["mod.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"least-connections","proxy_protocol":"v2","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"mod.example.com","minecraft_protocol":769},"modify_virtual_host":true,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§b模组服在线","version_name":null,"protocol":null,"online":null,"max":null,"fallback":{"motd":"§c后端暂时离线","version_name":"维护中","protocol":-1,"online":0,"max":100}},"whitelist_enabled":false,"whitelist":[],"whitelist_message":"§c你不在此服务器的白名单中。","crossplay_enabled":true,"enabled":true}</pre>
-        <div class="label">成功响应</div><p><code>201</code>，data 为创建后的规则。</p>
-        <div class="label">错误码</div><p><code>400</code>：ID/host 重复、参数非法、入口重载失败或持久化失败。<code>401</code>：认证失败。</p>
+        <div class="label">Example request</div><pre>{"id":"mod","name":"Modded","host":["mod.example.com"],"backend":["backend-a.example.com:25565","backend-b.example.com:25565"],"strategy":"least-connections","proxy_protocol":"v2","health_check":{"enabled":true,"mode":"minecraft-status","interval_secs":30,"timeout_ms":2000,"unhealthy_threshold":3,"healthy_threshold":2,"minecraft_host":"mod.example.com","minecraft_protocol":769},"modify_virtual_host":true,"status":{"mode":"backend","cache_ttl_secs":60,"motd":"§bModded server online","version_name":null,"protocol":null,"online":null,"max":null,"fallback":{"motd":"§cBackend temporarily offline","version_name":"Maintenance","protocol":-1,"online":0,"max":100}},"whitelist_enabled":false,"whitelist":[],"whitelist_message":"§cYou are not in the whitelist of this server.","crossplay_enabled":true,"enabled":true}</pre>
+        <div class="label">Successful response</div><p><code>201</code>: Created route.</p>
+        <div class="label">Errors</div><p><code>400</code>: Duplicate ID/host, invalid settings, listener reload failure, or persistence failure. <code>401</code>: Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="rules-put" data-search="修改规则 rules put id 启用 停用 域名路由">
-      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/rules/{id}</span><h3>修改或启停规则</h3></div>
+    <section class="endpoint" id="rules-put" data-search="Modify rules put id to enable and disable domain name routing">
+      <div class="endpoint-head"><span class="method put">PUT</span><span class="path">/api/v1/rules/{id}</span><h3>Update route</h3></div>
       <div class="endpoint-body">
-        <p>完整替换指定 host 路由。路径 ID 为权威值，请求体中的 ID 会被路径值覆盖。修改 host、backend、健康检查、PROXY Protocol、MOTD、白名单、握手 Host 改写、Crossplay 允许状态或启用状态会重载单入口路由表。全局 Crossplay 已启用时，不能使其当前 Java 地址失去匹配的允许路由。</p>
-        <div class="label">路径参数</div><table><tbody><tr><td><code>id</code></td><td>规则唯一 ID。</td></tr></tbody></table>
-        <div class="label">请求体</div><p>与新建规则相同。</p>
-        <div class="label">成功响应</div><p><code>200</code>，data 为更新后的规则。</p>
-        <div class="label">错误码</div><p><code>400</code>：规则不存在、参数非法、端口绑定失败或持久化失败。<code>401</code>：认证失败。</p>
+        <p>Replaces a route. The path ID overrides any ID in the request body. Route changes reload the shared listener. While crossplay is enabled, its Java address must continue to match an enabled route that allows crossplay.</p>
+        <div class="label">Path parameters</div><table><tbody><tr><td><code>id</code></td><td>Route ID.</td></tr></tbody></table>
+        <div class="label">Request</div><p>Same fields as Create route.</p>
+        <div class="label">Successful response</div><p><code>200</code>: Updated route.</p>
+        <div class="label">Errors</div><p><code>400</code>: Route not found, invalid settings, listener failure, or persistence failure. <code>401</code>: Authentication failed.</p>
       </div>
     </section>
 
-    <section class="endpoint" id="rules-delete" data-search="删除规则 delete">
-      <div class="endpoint-head"><span class="method delete">DELETE</span><span class="path">/api/v1/rules/{id}</span><h3>删除转发规则</h3></div>
+    <section class="endpoint" id="rules-delete" data-search="Delete Rule delete">
+      <div class="endpoint-head"><span class="method delete">DELETE</span><span class="path">/api/v1/rules/{id}</span><h3>Delete route</h3></div>
       <div class="endpoint-body">
-        <p>优雅停止并删除指定规则。为避免空配置，系统必须至少保留一条规则；可保留一条停用规则。</p>
-        <div class="label">路径参数</div><table><tbody><tr><td><code>id</code></td><td>规则唯一 ID。</td></tr></tbody></table>
-        <div class="label">成功响应</div><pre>{"ok":true,"data":{"deleted":"backup"}}</pre>
-        <div class="label">错误码</div><p><code>400</code>：规则不存在或删除后无任何规则。<code>401</code>：认证失败。</p>
+        <p>Stops and removes a route. At least one route must remain in the configuration; it may be disabled.</p>
+        <div class="label">Path parameters</div><table><tbody><tr><td><code>id</code></td><td>Route ID.</td></tr></tbody></table>
+        <div class="label">Successful response</div><pre>{"ok":true,"data":{"deleted":"backup"}}</pre>
+        <div class="label">Errors</div><p><code>400</code>: Route not found or deletion would leave no routes. <code>401</code>: Authentication failed.</p>
       </div>
     </section>
 
-    <section id="errors" data-search="错误码 400 401 404 500">
-      <h2>统一错误结构</h2>
-      <pre>{"ok":false,"error":{"code":400,"message":"具体错误说明"}}</pre>
-      <table><thead><tr><th>状态码</th><th>含义</th></tr></thead><tbody>
-        <tr><td><code>400</code></td><td>业务参数或运行时应用失败。</td></tr>
-        <tr><td><code>401</code></td><td>Bearer 管理令牌无效或缺失。</td></tr>
-        <tr><td><code>404</code></td><td>请求路径不存在。</td></tr>
-        <tr><td><code>413</code></td><td>请求体超过 Axum 默认限制。</td></tr>
-        <tr><td><code>500</code></td><td>未预期的服务端错误。</td></tr>
-        <tr><td><code>502</code></td><td>Nginx 无法连接回环管理端。</td></tr>
+    <section id="errors" data-search="Errors 400 401 404 500">
+      <h2>Error response format</h2>
+      <pre>{"ok":false,"error":{"code":400,"message":"Specific error message"}}</pre>
+      <table><thead><tr><th>Status Code</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td><code>400</code></td><td>Invalid request or failure to apply settings.</td></tr>
+        <tr><td><code>401</code></td><td>Missing or invalid admin token.</td></tr>
+        <tr><td><code>404</code></td><td>Unknown path.</td></tr>
+        <tr><td><code>413</code></td><td>Request body exceeds the configured limit.</td></tr>
+        <tr><td><code>500</code></td><td>Unexpected server error.</td></tr>
+        <tr><td><code>502</code></td><td>Upstream reverse proxy cannot reach the management service.</td></tr>
       </tbody></table>
     </section>
   </main>

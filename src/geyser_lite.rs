@@ -103,11 +103,11 @@ mod imp {
                 // 桥接不可靠（实测会把整个进程带崩），因此已运行实例不做热更新。
                 status.mode = Some(GeyserLiteMode::Embedded);
                 status.error = Some(
-                    "embedded 模式不支持热更新：已保留当前实例运行，请重启 mc-proxy \
-                     使新配置生效；需要在线热更新请改用 subprocess 模式"
+                    "embedded The mode does not support hot update: the current instance is running, please restart mc-proxy \
+                     for the new configuration to take effect; if an online hot update is required, please use subprocess mode instead"
                         .to_string(),
                 );
-                warn!("embedded 模式配置已保存但未热应用，需要重启 mc-proxy 生效");
+                warn!("Embedded mode settings were saved but require an mc-proxy restart");
                 return Ok(());
             }
 
@@ -124,8 +124,8 @@ mod imp {
                 move || geyserlite::Server::new(options)
             })
             .await
-            .map_err(|error| anyhow!("GeyserLite 初始化任务异常: {error}"))?
-            .map_err(|error| anyhow!("初始化 GeyserLite 失败: {error}"))?;
+            .map_err(|error| anyhow!("GeyserLite Initializing Task Abnormal: {error}"))?
+            .map_err(|error| anyhow!("Failed to initialize GeyserLite: {error}"))?;
             let server = Arc::new(server);
 
             let generation = self.inner.generation.fetch_add(1, Ordering::SeqCst) + 1;
@@ -148,7 +148,7 @@ mod imp {
                 mode = ?config.geyserlite.mode,
                 listen = %config.bedrock_listen,
                 upstream = %format!("{}:{}", config.java_address, config.java_port),
-                "GeyserLite 托管翻译层已启动"
+                "GeyserLite Host translation level started"
             );
             Ok(())
         }
@@ -181,9 +181,9 @@ mod imp {
             self.server.stop().await;
             match timeout(Duration::from_secs(10), &mut self.task).await {
                 Ok(Ok(())) => {}
-                Ok(Err(error)) => error!(%error, "GeyserLite 任务异常退出"),
+                Ok(Err(error)) => error!(%error, "GeyserLite task exited unexpectedly"),
                 Err(_) => {
-                    warn!("GeyserLite 停止超时，强制取消托管任务");
+                    warn!("GeyserLite stop timed out; aborting the remaining task");
                     self.task.abort();
                     let _ = self.task.await;
                 }
@@ -210,9 +210,9 @@ mod imp {
                 let mut status = status.lock().await;
                 if generation.load(Ordering::SeqCst) == mine {
                     status.running = false;
-                    status.error = Some(format!("GeyserLite 退出: {error}"));
+                    status.error = Some(format!("GeyserLite Exit: {error}"));
                 }
-                error!(%error, "GeyserLite 托管实例退出");
+                error!(%error, "GeyserLite managed instance exited");
             }
         }
     }
@@ -228,7 +228,7 @@ mod imp {
                 let hex = geyserlite_config
                     .floodgate_key
                     .as_deref()
-                    .context("Floodgate 认证需要 geyserlite.floodgate_key")?;
+                    .context("Floodgate authentication requires geyserlite.floodgate_key")?;
                 decode_hex_key(hex)?
             }
             _ => Vec::new(),
@@ -257,13 +257,13 @@ mod imp {
     fn decode_hex_key(hex: &str) -> Result<Vec<u8>> {
         let hex = hex.trim();
         if hex.len() != 32 || !hex.chars().all(|character| character.is_ascii_hexdigit()) {
-            anyhow::bail!("floodgate_key 必须是 16 字节密钥的 32 位十六进制字符串");
+            anyhow::bail!("floodgate_key must contain 32 hexadecimal digits (16 bytes)");
         }
         (0..hex.len())
             .step_by(2)
             .map(|index| {
                 u8::from_str_radix(&hex[index..index + 2], 16)
-                    .map_err(|error| anyhow!("解析 floodgate_key 失败: {error}"))
+                    .map_err(|error| anyhow!("Failed to parse floodgate_key: {error}"))
             })
             .collect()
     }
@@ -340,7 +340,9 @@ mod imp {
                 enabled: false,
                 running: false,
                 mode: None,
-                error: Some("当前平台/构建未启用 GeyserLite 特性".to_string()),
+                error: Some(
+                    "Current platform/build without GeyserLite feature enabled".to_string(),
+                ),
             }
         }
 

@@ -8,7 +8,7 @@ Type=oneshot
 User=root
 Group=root
 ExecStart=/usr/local/lib/mc-proxy/mc-proxy-update.sh
-# 状态 JSON 仅含版本和更新结果，控制台的非 root 服务账户需要读取它来提示管理员。
+# The status JSON contains only version and update results; the console service account reads it to notify admins.
 UMask=0022
 NoNewPrivileges=true
 PrivateTmp=true

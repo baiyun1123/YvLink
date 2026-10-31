@@ -1,36 +1,36 @@
 [admin]
-# 管理 HTTP 端只允许监听回环地址，由 Nginx 提供公网 HTTPS
+# Bind management HTTP to loopback; Nginx provides public HTTPS.
 listen = "127.0.0.1:18080"
 
 [crossplay]
-# 翻译层提供方：external = 独立 Geyser Standalone（UDP -> Java 协议翻译器），
-# geyserlite = 由 mc-proxy 托管 GeyserLite（无需 JVM）。
+# Translator: external uses a separate Geyser Standalone process (UDP to Java);
+# geyserlite is hosted by mc-proxy and does not require a JVM.
 enabled = false
 provider = "external"
 bedrock_listen = "0.0.0.0:19132"
-# Geyser 的 Java 目标地址应匹配下面一条路由 host，并解析到本机 mc-proxy。
+# Geyser's Java address must match a route below and resolve to local mc-proxy.
 java_address = "bedrock.example.com"
 java_port = 25565
 # online / floodgate / offline
 auth_type = "online"
 
-# provider = "geyserlite" 时的托管参数；external 模式下忽略。
+# Managed settings for provider = "geyserlite"; ignored in external mode.
 [crossplay.geyserlite]
-# embedded = 同一进程内加载 libgeyserlite.so；subprocess = 托管子进程，隔离更好。
+# embedded loads libgeyserlite.so in process; subprocess provides isolation.
 mode = "embedded"
-# embedded 模式的 libgeyserlite.so 显式路径；留空按 GEYSERLITE_LIBRARY/系统路径/自动下载定位。
+# Optional embedded library path; otherwise use GEYSERLITE_LIBRARY, system paths, or download.
 # library_path = "/opt/mc-proxy/geyserlite/libgeyserlite.so"
-# subprocess 模式的原生可执行文件显式路径；留空自动定位/自动下载。
+# Optional subprocess executable path; otherwise detect or download it.
 # binary_path = "/opt/mc-proxy/geyserlite/geyserlite"
-# 离线模式：禁止任何网络获取，必须已提供原生库/可执行文件或使用 geyserlite-embed 特性构建。
+# Offline mode disallows downloads; supply a native library/executable or use geyserlite-embed.
 offline = false
 motd_line1 = "YvLink"
 motd_line2 = "Bedrock via GeyserLite"
-# 仅 auth_type = "floodgate" 需要：16 字节 AES-128 密钥的 32 位十六进制字符串，敏感，勿泄露。
+# Required only for auth_type = "floodgate": sensitive 16-byte AES-128 key as 32 hex digits.
 # floodgate_key = "00112233445566778899aabbccddeeff"
 
-# Java 后端版本兼容：ViaLite 位于 YvLink 已选路之后、真实后端之前。
-# 需先用 deploy/install-vialite.sh 校验并安装原生运行时；启用时所有 rules.proxy_protocol 必须为 off。
+# ViaLite translates Java protocols after YvLink routing and before the real backend.
+# Install the native runtime with deploy/install-vialite.sh first. All routes must disable PROXY Protocol.
 [via]
 enabled = false
 # binary_path = "/opt/mc-proxy/vialite/vialite"
@@ -39,7 +39,7 @@ gate_protocol = "auto"
 backend_version = "auto"
 
 [settings]
-# 所有域名路由共用这一个 Minecraft Java 入口
+# All domain routes share this Minecraft Java listener.
 listen = "0.0.0.0:25565"
 proxy_enabled = true
 max_connections = 10000
@@ -53,54 +53,54 @@ tcp_nodelay = true
 reuse_port = false
 stats_interval_secs = 10
 
-# 按文件中的先后顺序匹配，首个命中的 host 决定路由，再由 strategy 选择 backend。
+# Routes match in file order; the first matching host selects a route, then strategy selects a backend.
 [[rules]]
 id = "play"
-name = "主服"
+name = "Survival"
 host = "play.example.com"
 backend = "10.0.0.2:25565"
-# off / v1 / v2；仅在后端监听器明确支持对应 PROXY Protocol 时启用。
+# off / v1 / v2; enable only when the backend supports that PROXY Protocol version.
 proxy_protocol = "off"
 modify_virtual_host = false
 whitelist_enabled = true
 whitelist = ["Alice", "Bob"]
-whitelist_message = "§c你不在此服务器的白名单中。"
-# 只有 true 的已启用路由才能作为全局 Bedrock Crossplay 的 Java 上游。
+whitelist_message = "§cYou are not on this server's whitelist."
+# Only enabled routes with this set to true can serve global Bedrock crossplay.
 crossplay_enabled = false
 enabled = true
 
 [rules.health_check]
-# tcp 只检查端口；minecraft-status 完成 Java Status + Ping，能排除伪在线端口。
+# tcp checks only the port; minecraft-status also validates Java Status and Ping/Pong.
 enabled = true
 mode = "minecraft-status"
 interval_secs = 30
 timeout_ms = 2000
 unhealthy_threshold = 3
 healthy_threshold = 2
-# 留空时优先使用精确路由 Host；modify_virtual_host=true 或通配路由会使用后端主机名。
+# If omitted, use an exact route host; rewritten or wildcard routes use the backend hostname.
 # minecraft_host = "play.example.com"
 minecraft_protocol = 769
 
 [rules.status]
-# custom：完全由代理生成；backend：读取后端状态并只覆盖下面明确填写的字段。
+# custom generates status locally; backend reads backend status and applies only specified overrides.
 mode = "custom"
 cache_ttl_secs = 10
-motd = "§a主服在线\n§7由 MC Relay 提供入口"
-version_name = "原版 1.21"
-# 留空时跟随发起查询的客户端协议号
+motd = "§aSurvival is online\n§7Connected through YvLink"
+version_name = "Vanilla 1.21"
+# If omitted, use the querying client's protocol number.
 # protocol = 767
 online = 0
 max = 100
 
 [[rules]]
 id = "mod"
-name = "模组服"
+name = "Modded"
 host = ["*.mod.example.com", "mod.example.com"]
 backend = ["backend-a.example.com:25565", "backend-b.example.com:25565"]
 # sequential / random / round-robin / least-connections / lowest-latency
 strategy = "least-connections"
-# v2 能以固定二进制格式向受信任的兼容后端传递真实客户端 IP。
-# 普通 Minecraft 服务端不支持该头，保持 off。
+# v2 passes the real client IP to a trusted compatible backend in a binary header.
+# Ordinary Minecraft servers do not support this header; keep it off for them.
 proxy_protocol = "off"
 modify_virtual_host = true
 whitelist_enabled = false
@@ -115,29 +115,29 @@ interval_secs = 30
 timeout_ms = 2000
 unhealthy_threshold = 3
 healthy_threshold = 2
-# 模组端可指定它要求的虚拟主机；Status JSON 中的 forgeData/modinfo 扩展不会被拒绝。
+# Set the required virtual host if needed; forgeData/modinfo Status JSON extensions are accepted.
 # minecraft_host = "backend-a.example.com"
 minecraft_protocol = 769
 
-# 模组服建议使用 backend 模式，保留 Forge/NeoForge 的 forgeData、
-# 旧版 modinfo、favicon、玩家 sample 和其他未知扩展字段。
+# Backend mode preserves Forge/NeoForge forgeData, legacy modinfo, favicon,
+# player samples, and unknown Status JSON fields.
 [rules.status]
 mode = "backend"
 cache_ttl_secs = 60
-# 可选覆盖；删除或注释字段即保留后端原值。
-motd = "§b模组服在线"
+# Optional override; remove or comment out to preserve the backend value.
+motd = "§bModded server online"
 
 [rules.status.fallback]
-motd = "§c模组服暂时离线，请稍后再试"
-version_name = "后端不可用"
+motd = "§cModded server is temporarily offline; please try again later"
+version_name = "Backend unavailable"
 protocol = -1
 online = 0
 max = 100
 
-# 放在最后，接收未命中前面规则的其他域名。
+# Keep this last to catch hostnames that matched no earlier route.
 [[rules]]
 id = "default"
-name = "默认线路"
+name = "Default route"
 host = "*"
 backend = "10.0.0.10:25565"
 proxy_protocol = "off"

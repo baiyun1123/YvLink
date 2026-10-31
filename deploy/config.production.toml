@@ -38,7 +38,7 @@ stats_interval_secs = 10
 
 [[rules]]
 id = "default"
-name = "默认线路"
+name = "Default route"
 host = "*"
 backend = "127.0.0.1:25566"
 strategy = "sequential"
@@ -58,4 +58,4 @@ unhealthy_threshold = 3
 healthy_threshold = 2
 minecraft_protocol = 769
 
-# 在管理页面添加 host -> backend 路由，再启用全局 Minecraft 入口。
+# Add a host-to-backend route in the management console, then enable the global Minecraft listener.

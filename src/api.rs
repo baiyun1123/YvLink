@@ -84,15 +84,15 @@ async fn get_updates(State(state): State<ApiState>) -> Json<ApiResponse<UpdateVi
     let status = match tokio::fs::read_to_string(&state.update_status_path).await {
         Ok(contents) => serde_json::from_str(&contents).unwrap_or_else(|_| UpdateStatusFile {
             state: "unknown".to_string(),
-            message: "自动更新状态文件格式无效；请检查更新服务日志。".to_string(),
+            message: "Automatic update status file format is invalid; please check update service logs.".to_string(),
         }),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => UpdateStatusFile {
             state: "unknown".to_string(),
-            message: "尚未收到自动更新器的状态；定时任务首次执行后会显示结果。".to_string(),
+            message: "The status of the automatic updater has not yet been received; the results will be displayed after the first execution of the timing task.".to_string(),
         },
         Err(_) => UpdateStatusFile {
             state: "unknown".to_string(),
-            message: "暂时无法读取自动更新状态；请检查服务文件权限。".to_string(),
+            message: "The automatic update status cannot be read temporarily; please check the service file permissions.".to_string(),
         },
     };
     success(UpdateView {
@@ -252,7 +252,7 @@ async fn require_auth(State(state): State<ApiState>, request: Request, next: Nex
 
     let mut response = ApiError {
         status: StatusCode::UNAUTHORIZED,
-        message: "管理令牌无效或缺失".to_string(),
+        message: "Invalid or missing admin token".to_string(),
     }
     .into_response();
     response.headers_mut().insert(

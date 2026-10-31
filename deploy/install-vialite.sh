@@ -1,5 +1,6 @@
 #!/bin/sh
-# 下载 ViaLite 最新稳定版并严格比对官方 checksums.txt。可选第一个参数固定版本，例如 v0.3.0。
+# Download the latest stable ViaLite release and verify its official checksums.txt.
+# An optional first argument pins a version, for example v0.3.0.
 set -eu
 
 requested_version=${1:-latest}
@@ -8,7 +9,7 @@ machine=$(uname -m)
 case "$machine" in
   x86_64) asset_name='vialite-linux-amd64' ;;
   aarch64|arm64) asset_name='vialite-linux-arm64' ;;
-  *) echo "不支持的 CPU 架构: $machine" >&2; exit 1 ;;
+  *) echo "Unsupported CPU architecture: $machine" >&2; exit 1 ;;
 esac
 release_api='https://api.github.com/repos/minekube/vialite/releases'
 work_dir=$(mktemp -d)
@@ -41,4 +42,4 @@ curl --fail --silent --show-error --location "$checksums_url" >"$work_dir/checks
 # root and is never written by the running proxy.
 install -d -m 0755 "$target_dir"
 install -m 0755 "$work_dir/$asset_name" "$target_dir/vialite"
-printf 'ViaLite %s 已安装到 %s\n' "$version" "$target_dir/vialite"
+printf 'ViaLite %s installed at %s\n' "$version" "$target_dir/vialite"

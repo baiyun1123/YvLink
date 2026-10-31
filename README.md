@@ -462,6 +462,8 @@ Download installable packages from [GitHub Releases](https://github.com/baiyun11
 - Web-based configuration, runtime metrics, backend health details, and a 60-second live throughput chart.
 - Bearer-token protected management API and atomic configuration persistence.
 - Bedrock crossplay with two providers: an external Geyser Standalone process, or a GeyserLite instance managed directly by YvLink (no JVM required); both are verified with a real RakNet Pong probe.
+- Optional managed ViaLite subprocess for Java backend version compatibility after routing.
+- A systemd updater with version checks, atomic replacement, and rollback.
 - Graceful Ctrl+C/SIGTERM shutdown, connection limits, timeouts, and optional Linux/Android `SO_REUSEPORT`.
 
 ## How It Works
@@ -513,14 +515,15 @@ cargo --version
 | Certbot | Let’s Encrypt certificate issuance and renewal |
 | Java 21 + Geyser Standalone | Bedrock connectivity only with `provider = "external"` |
 | GeyserLite build feature | Managed Bedrock translator with `provider = "geyserlite"`, no JVM needed |
+| ViaLite (optional) | Java backend version compatibility, installed with `deploy/install-vialite.sh` |
 
 ## Quick Start
 
 ### 1. Clone and Build
 
 ```sh
-git clone <your-repository-url>
-cd mc-proxy
+git clone https://github.com/baiyun1123/YvLink.git
+cd YvLink
 cargo build --release
 ```
 
@@ -618,6 +621,13 @@ offline = false
 motd_line1 = "YvLink"
 motd_line2 = "Bedrock via GeyserLite"
 
+[via]
+enabled = false
+# binary_path = "/opt/mc-proxy/vialite/vialite"
+runtime_dir = "/run/mc-proxy/vialite"
+gate_protocol = "auto"
+backend_version = "auto"
+
 [settings]
 listen = "0.0.0.0:25565"
 proxy_enabled = true
@@ -681,12 +691,36 @@ max = 100
 | `rules.proxy_protocol` | `off`, `v1`, or `v2`; ordinary Minecraft servers normally require `off` |
 | `rules.health_check.mode` | `tcp` checks reachability; `minecraft-status` validates Status JSON and Ping/Pong |
 | `rules.status.mode` | `custom` generates a response; `backend` preserves the backend response and overrides selected fields |
+| `via.enabled` | Enables ViaLite Java backend compatibility; requires an installed absolute `binary_path` |
+| `via.backend_version` | Target backend version; use an explicit value when Status detection is blocked |
 
 Rules are evaluated in file order. A catch-all rule using `host = "*"` must therefore be placed last.
 
+### ViaLite Java Backend Compatibility
+
+ViaLite runs after YvLink selects a route and before it connects to the Java backend. It handles Java protocol differences; GeyserLite handles Bedrock-to-Java translation. YvLink manages a separate ViaLite subprocess and loopback listener for each unique backend.
+
+Install the verified runtime before enabling ViaLite in the console or configuration:
+
+```sh
+sudo install -d -m 0755 /usr/local/lib/mc-proxy
+sudo install -m 0755 deploy/install-vialite.sh /usr/local/lib/mc-proxy/install-vialite.sh
+sudo /usr/local/lib/mc-proxy/install-vialite.sh
+```
+
+Every route must use `proxy_protocol = "off"` while ViaLite is enabled. YvLink does not provide Velocity or BungeeCord identity forwarding.
+
+### Automatic Updates
+
+The optional updater downloads the Ubuntu 24.04 x86_64 package from upstream YvLink releases. It checks the binary version, replaces the executable atomically, and restores the previous version if the service cannot restart. It does not edit `/etc/mc-proxy/config.toml`.
+
+### NotEnoughBandwidth (NEB)
+
+[NotEnoughBandwidth](https://github.com/USS-Shenzhou/NotEnoughBandwidth) is a Fabric client/server mod, not a library embedded in YvLink. Install it on compatible clients and backends, then test any Velocity or protocol translation path. YvLink transparently forwards later mod traffic.
+
 ## Web Control Panel and API
 
-The management server listens on `127.0.0.1:18080` by default. Enter the same token as `MC_PROXY_ADMIN_TOKEN` when the browser asks for it. The token is stored only in the current tab’s `sessionStorage`.
+The management server listens on `127.0.0.1:18080` by default. Enter the same token as `MC_PROXY_ADMIN_TOKEN` when the browser asks for it. The token is stored in this browser's `localStorage` until you log out.
 
 Use Nginx to expose the control panel over HTTPS in production. Do not bind the management listener directly to a public interface. Included resources:
 

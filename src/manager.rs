@@ -154,7 +154,7 @@ impl RuntimeManager {
         let _mutation = self.mutation.lock().await;
         let mut config = self.inner.lock().await.config.clone();
         if config.rules.iter().any(|existing| existing.id == rule.id) {
-            bail!("规则 id 已存在: {}", rule.id);
+            bail!("Rule ID already exists: {}", rule.id);
         }
         let insert_at = config
             .rules
@@ -170,7 +170,7 @@ impl RuntimeManager {
         let _mutation = self.mutation.lock().await;
         let mut config = self.inner.lock().await.config.clone();
         let Some(index) = config.rules.iter().position(|existing| existing.id == id) else {
-            bail!("规则不存在: {id}");
+            bail!("Rule does not exist: {id}");
         };
         rule.id = id.to_string();
         config.rules[index] = rule.clone();
@@ -184,7 +184,7 @@ impl RuntimeManager {
         let previous = config.rules.len();
         config.rules.retain(|rule| rule.id != id);
         if config.rules.len() == previous {
-            bail!("规则不存在: {id}");
+            bail!("Rule does not exist: {id}");
         }
         self.apply_locked(config).await
     }
@@ -234,7 +234,9 @@ impl RuntimeManager {
             }
             let metrics = Arc::clone(&inner.metrics);
             inner.handle = restart_old(&old_config, metrics, Arc::clone(&self.via_dial_targets))
-                .context("新配置持久化失败，且旧入口回滚失败")?;
+                .context(
+                    "Failed to save the new configuration and restore the previous listener",
+                )?;
             return Err(error);
         }
 
@@ -255,19 +257,19 @@ fn start_proxy(
 ) -> Result<ProxyHandle> {
     let forward = Arc::new(ForwardConfig::from_app(config).with_via_dial_targets(via_dial_targets));
     let listener = create_listener(&forward)
-        .with_context(|| format!("Minecraft 入口无法监听 {}", forward.listen))?;
+        .with_context(|| format!("Cannot bind Minecraft listener at {}", forward.listen))?;
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
     let listen = forward.listen;
     let route_count = forward.routes.len();
     let task_forward = Arc::clone(&forward);
     let task = tokio::spawn(async move {
-        info!(%listen, route_count, "Minecraft 单端口域名路由入口已启动");
+        info!(%listen, route_count, "Minecraft routing listener started");
         let result = serve(listener, task_forward, metrics, async move {
             let _ = shutdown_rx.await;
         })
         .await;
         if let Err(error) = &result {
-            error!(%error, "Minecraft 路由入口异常退出");
+            error!(%error, "Minecraft routing listener exited unexpectedly");
         }
         result
     });
@@ -296,17 +298,19 @@ async fn stop_proxy(mut handle: ProxyHandle) {
     }
     match handle.task.await {
         Ok(Ok(())) => {}
-        Ok(Err(error)) => warn!(%error, "Minecraft 路由入口退出时返回错误"),
-        Err(error) => warn!(%error, "Minecraft 路由入口任务连接失败"),
+        Ok(Err(error)) => warn!(%error, "Minecraft routing listener returned an error"),
+        Err(error) => warn!(%error, "Minecraft routing listener task failed"),
     }
 }
 
 pub fn validate_admin_token(token: &str) -> Result<()> {
     if token.len() < 32 {
-        bail!("MC_PROXY_ADMIN_TOKEN 至少需要 32 个字符");
+        bail!("MC_PROXY_ADMIN_TOKEN must contain at least 32 characters");
     }
     if token.chars().any(char::is_whitespace) {
-        return Err(anyhow!("MC_PROXY_ADMIN_TOKEN 不能包含空白字符"));
+        return Err(anyhow!(
+            "MC_PROXY_ADMIN_TOKEN Unable to contain whitespace characters"
+        ));
     }
     Ok(())
 }

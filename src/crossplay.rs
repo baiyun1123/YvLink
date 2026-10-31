@@ -59,20 +59,20 @@ async fn probe_geyser(listen: SocketAddr) -> Result<(Duration, String), String> 
     };
     let socket = UdpSocket::bind(bind)
         .await
-        .map_err(|error| format!("无法创建 Bedrock UDP 探针: {error}"))?;
+        .map_err(|error| format!("Unable to create Bedrock UDP probe: {error}"))?;
     let packet = unconnected_ping();
     let started = Instant::now();
     socket
         .send_to(&packet, target)
         .await
-        .map_err(|error| format!("无法发送 Bedrock UDP 探针: {error}"))?;
+        .map_err(|error| format!("Unable to send Bedrock UDP probe: {error}"))?;
     let mut response = [0_u8; 2048];
     let (length, _) = timeout(PROBE_TIMEOUT, socket.recv_from(&mut response))
         .await
-        .map_err(|_| "Geyser UDP 探针超时".to_string())?
-        .map_err(|error| format!("无法接收 Geyser UDP 响应: {error}"))?;
+        .map_err(|_| "Geyser UDP The probe timed out.".to_string())?
+        .map_err(|error| format!("Unable to receive Geyser UDP response: {error}"))?;
     let motd = parse_unconnected_pong(&response[..length])
-        .ok_or_else(|| "Geyser 返回了无效的 RakNet Pong".to_string())?;
+        .ok_or_else(|| "Geyser returns invalid RakNet Pong".to_string())?;
     Ok((started.elapsed(), motd.to_string()))
 }
 

@@ -22,8 +22,8 @@
     modalReturnFocus: null,
   };
 
-  // v0.14 使用 sessionStorage；升级后把同一浏览器标签页里的既有登录迁移为
-  // localStorage，避免刷新、恢复标签页或重新打开同源控制台时重复输入令牌。
+  // Migrate existing v0.14 sessionStorage login to localStorage in this tab
+  // so a refresh or reopening the console does not require the token again.
   if (state.token && !localStorage.getItem(TOKEN_STORAGE_KEY)) {
     localStorage.setItem(TOKEN_STORAGE_KEY, state.token);
     sessionStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
@@ -41,9 +41,9 @@
     if (response.status === 401) {
       clearStoredToken();
       showAuth();
-      throw new Error("管理令牌无效或已失效");
+      throw new Error("Invalid or missing admin token");
     }
-    if (!response.ok || !payload.ok) throw new Error(payload.error?.message || `请求失败：${response.status}`);
+    if (!response.ok || !payload.ok) throw new Error(payload.error?.message || `Request failed: ${response.status}`);
     return payload.data;
   }
 
@@ -100,7 +100,7 @@
       setConnectionState(true);
     } catch (error) {
       setConnectionState(false);
-      if (!error.message.includes("令牌")) toast(error.message, true);
+      if (!error.message.includes("token")) toast(error.message, true);
     }
   }
 
@@ -109,7 +109,7 @@
       state.crossplay = await api("/crossplay");
       renderCrossplay();
     } catch (error) {
-      if (!error.message.includes("令牌")) {
+      if (!error.message.includes("token")) {
         $("#crossplayMessage").textContent = error.message;
         $("#crossplayMessage").className = "crossplay-message error";
       }
@@ -121,7 +121,7 @@
       state.via = await api("/via");
       renderVia();
     } catch (error) {
-      if (!error.message.includes("令牌")) toast(error.message, true);
+      if (!error.message.includes("token")) toast(error.message, true);
     }
   }
 
@@ -130,27 +130,27 @@
       state.updates = await api("/updates");
       renderUpdates();
     } catch (error) {
-      if (!error.message.includes("令牌")) toast(error.message, true);
+      if (!error.message.includes("token")) toast(error.message, true);
     }
   }
 
   function updateStateMeta(value) {
     return ({
-      "up-to-date": { label: "已是最新", tone: "online" },
-      downloading: { label: "正在更新", tone: "pending" },
-      updated: { label: "更新完成", tone: "online" },
-      deferred: { label: "等待服务", tone: "pending" },
-      failed: { label: "更新失败", tone: "error" },
-      "rolled-back": { label: "已回滚", tone: "error" },
-      unknown: { label: "状态未知", tone: "pending" },
-    })[value] || { label: value || "状态未知", tone: "pending" };
+      "up-to-date": { label: "Up to date", tone: "online" },
+      downloading: { label: "Updating", tone: "pending" },
+      updated: { label: "Update completed", tone: "online" },
+      deferred: { label: "Waiting for service", tone: "pending" },
+      failed: { label: "Update failed", tone: "error" },
+      "rolled-back": { label: "Rolled back", tone: "error" },
+      unknown: { label: "Status unknown", tone: "pending" },
+    })[value] || { label: value || "Status unknown", tone: "pending" };
   }
 
   function renderUpdates() {
     if (!state.updates) return;
     const { current_version: version, status } = state.updates;
     const meta = updateStateMeta(status.state);
-    $("#updateCurrentVersion").textContent = `当前版本 v${version}`;
+    $("#updateCurrentVersion").textContent = `Current version v${version}`;
     $("#updateMessage").textContent = status.message;
     const badge = $("#updateStateBadge");
     badge.textContent = meta.label;
@@ -208,11 +208,11 @@
     if (!state.status) return;
     const { totals, rules, version, uptime_seconds: uptime } = state.status;
     $("#metricActive").textContent = formatNumber(totals.active_connections);
-    $("#metricAccepted").textContent = `累计连接 ${formatNumber(totals.accepted_connections)}`;
+    $("#metricAccepted").textContent = `Total connections ${formatNumber(totals.accepted_connections)}`;
     $("#metricUpload").textContent = formatBytes(totals.upload_bytes);
     $("#metricDownload").textContent = formatBytes(totals.download_bytes);
     $("#metricRules").textContent = `${rules.filter(rule => rule.running).length} / ${rules.length}`;
-    $("#metricFailures").textContent = `失败 ${formatNumber(totals.backend_failures + totals.forwarding_failures)}`;
+    $("#metricFailures").textContent = `Failures ${formatNumber(totals.backend_failures + totals.forwarding_failures)}`;
     $("#instanceVersion").textContent = `v${version}`;
     $("#instanceUptime").textContent = formatUptime(uptime);
     $("#instanceBackendFailures").textContent = formatNumber(totals.backend_failures);
@@ -234,12 +234,12 @@
     $("#protocolConfigurationForge").textContent = formatNumber(totals.configuration_forge_handshakes);
     $("#ingressAddress").textContent = state.config.settings.listen;
     $("#proxyStateChip").classList.toggle("online", Boolean(state.status.proxy_running));
-    $("#proxyStateText").textContent = state.status.proxy_running ? "入口运行中" : "入口已停用";
+    $("#proxyStateText").textContent = state.status.proxy_running ? "Ingress active" : "Ingress disabled";
 
     const rows = $("#overviewRuleRows");
     rows.replaceChildren();
     if (!rules.length) {
-      rows.innerHTML = '<tr><td colspan="5" class="empty-cell">暂无转发规则</td></tr>';
+      rows.innerHTML = '<tr><td colspan="5" class="empty-cell">No routes configured</td></tr>';
       return;
     }
     for (const rule of rules) {
@@ -264,13 +264,13 @@
       const failedAttempts = health.reduce((sum, backend) => sum + Number(backend.failed_attempts || 0), 0);
       const backendHealthRows = health.map(backend => {
         const stateView = backendHealthView(backend.health, rule.health_check?.enabled);
-        const checked = backend.last_checked_secs_ago == null ? "尚未检查" : `${formatNumber(backend.last_checked_secs_ago)} 秒前`;
+        const checked = backend.last_checked_secs_ago == null ? "Not checked yet" : `${formatNumber(backend.last_checked_secs_ago)} s ago`;
         const latency = backend.health_check_latency_ms == null ? "--" : `${formatNumber(backend.health_check_latency_ms)} ms`;
         const streak = backend.health === "unhealthy"
-          ? `连续失败 ${formatNumber(backend.consecutive_health_failures)}`
-          : `连续成功 ${formatNumber(backend.consecutive_health_successes)}`;
+          ? `Consecutive failures: ${formatNumber(backend.consecutive_health_failures)}`
+          : `Consecutive successes: ${formatNumber(backend.consecutive_health_successes)}`;
         return `<div class="backend-health-row">
-          <div><strong>${escapeHtml(backend.address)}</strong><small>${checked} · 探测 ${latency} · ${streak}</small></div>
+          <div><strong>${escapeHtml(backend.address)}</strong><small>${checked} · Probe ${latency} · ${streak}</small></div>
           <span class="health-badge ${stateView.className}"><i aria-hidden="true"></i>${stateView.label}</span>
         </div>`;
       }).join("");
@@ -287,28 +287,28 @@
           <div class="route-node"><span>Backend Pool</span><strong>${backendList(rule).map(escapeHtml).join(" · ")}</strong></div>
         </div>
         <div class="rule-metrics">
-          <div><span>共享入口</span><strong>${escapeHtml(state.config.settings.listen)}</strong></div>
-          <div><span>负载策略</span><strong>${strategyLabel(rule.strategy)}</strong></div>
-          <div><span>真实 IP 传递</span><strong>${proxyProtocolLabel(rule.proxy_protocol)}</strong></div>
-          <div><span>活动后端连接</span><strong>${formatNumber(activeBackends)}</strong></div>
-          <div><span>后端尝试失败</span><strong>${formatNumber(failedAttempts)}</strong></div>
-          <div><span>状态响应</span><strong>${rule.status ? (rule.status.mode === "backend" ? "后端覆盖 + 缓存" : "代理完全生成") : "透明透传"}</strong></div>
-          <div><span>主动探测</span><strong>${!rule.health_check?.enabled ? "关闭" : rule.health_check.mode === "minecraft-status" ? "Minecraft Status" : "TCP 端口"}</strong></div>
-          <div><span>访问控制</span><strong>${rule.whitelist_enabled ? `白名单 ${rule.whitelist.length} 人` : "后端负责"}</strong></div>
-          <div><span>后端握手 Host</span><strong>${rule.modify_virtual_host ? "改写为后端主机" : "保留客户端域名"}</strong></div>
-          <div><span>基岩版互通</span><strong>${rule.crossplay_enabled ? "允许作为 Crossplay 上游" : "未允许"}</strong></div>
+          <div><span>Shared ingress</span><strong>${escapeHtml(state.config.settings.listen)}</strong></div>
+          <div><span>Load balancing</span><strong>${strategyLabel(rule.strategy)}</strong></div>
+          <div><span>Real IP forwarding</span><strong>${proxyProtocolLabel(rule.proxy_protocol)}</strong></div>
+          <div><span>Active backend connections</span><strong>${formatNumber(activeBackends)}</strong></div>
+          <div><span>Failed backend attempts</span><strong>${formatNumber(failedAttempts)}</strong></div>
+          <div><span>Status response</span><strong>${rule.status ? (rule.status.mode === "backend" ? "Backend status + cache" : "Proxy-generated status") : "Transparent passthrough"}</strong></div>
+          <div><span>Active health checks</span><strong>${!rule.health_check?.enabled ? "Off" : rule.health_check.mode === "minecraft-status" ? "Minecraft Status" : "TCP Port"}</strong></div>
+          <div><span>Access control</span><strong>${rule.whitelist_enabled ? `Whitelist: ${rule.whitelist.length} players` : "Handled by backend"}</strong></div>
+          <div><span>Backend handshake host</span><strong>${rule.modify_virtual_host ? "Rewrite as backend host" : "Keep client hostname"}</strong></div>
+          <div><span>Bedrock crossplay</span><strong>${rule.crossplay_enabled ? "Allowed as crossplay upstream" : "Not allowed"}</strong></div>
         </div>
-        <section class="backend-health-list" aria-label="${escapeHtml(rule.name)} 后端健康状态">
-          ${backendHealthRows || '<p class="backend-health-empty">路由未运行，暂无后端状态。</p>'}
+        <section class="backend-health-list" aria-label="${escapeHtml(rule.name)} Backend health status">
+          ${backendHealthRows || '<p class="backend-health-empty">Route is stopped; backend health is unavailable.</p>'}
         </section>
         <div class="rule-actions">
-          <button class="secondary-button" data-toggle="${escapeHtml(rule.id)}">${rule.enabled ? "停用" : "启用"}</button>
-          <button class="secondary-button" data-edit="${escapeHtml(rule.id)}">编辑</button>
-          <button class="danger-button" data-delete="${escapeHtml(rule.id)}">删除</button>
+          <button class="secondary-button" data-toggle="${escapeHtml(rule.id)}">${rule.enabled ? "Disable" : "Enable"}</button>
+          <button class="secondary-button" data-edit="${escapeHtml(rule.id)}">Edit</button>
+          <button class="danger-button" data-delete="${escapeHtml(rule.id)}">Delete</button>
         </div>`;
       grid.append(card);
     }
-    if (!state.status.rules.length) grid.innerHTML = '<article class="panel empty-cell">暂无转发规则</article>';
+    if (!state.status.rules.length) grid.innerHTML = '<article class="panel empty-cell">No routes configured</article>';
   }
 
   function drawChart() {
@@ -384,15 +384,15 @@
     badge.textContent = status.online ? "ONLINE" : status.enabled ? "OFFLINE" : "DISABLED";
     $("#crossplayLiveLabel").classList.toggle("off", !status.online);
     $("#crossplayHealthLabel").textContent = status.online
-      ? "UDP 在线"
+      ? "UDP Online"
       : status.enabled
-        ? config.provider === "geyserlite" ? "等待 GeyserLite" : "等待 Geyser"
-        : "未启用";
+        ? config.provider === "geyserlite" ? "Waiting for GeyserLite" : "Waiting for Geyser"
+        : "Not enabled";
     const runtimeError = state.crossplay.runtime?.error || null;
     const message = $("#crossplayMessage");
     message.textContent = status.online
-      ? `RakNet Pong 正常${status.motd ? ` · ${status.motd.split(";").slice(0, 2).join(" · ")}` : ""}`
-      : status.error || runtimeError || "互通监控未启用；Java 路由不受影响。";
+      ? `RakNet Pong OK${status.motd ? ` · ${status.motd.split(";").slice(0, 2).join(" · ")}` : ""}`
+      : status.error || runtimeError || "Crossplay monitoring is disabled; Java routing is unaffected.";
     message.className = `crossplay-message${status.online ? " success" : status.error || runtimeError ? " error" : ""}`;
     syncCrossplayFields();
   }
@@ -409,13 +409,13 @@
     $("#viaGateProtocol").textContent = config.gate_protocol;
     $("#viaBackendVersion").textContent = config.backend_version;
     $("#viaManagedBackends").textContent = formatNumber(runtime.managed_backends);
-    $("#viaRuntime").textContent = runtime.running ? "托管中" : runtime.error ? "启动失败" : "已停止";
+    $("#viaRuntime").textContent = runtime.running ? "Running" : runtime.error ? "Start failed" : "Stopped";
     $("#viaLiveLabel").classList.toggle("off", !runtime.running);
-    $("#viaHealthLabel").textContent = runtime.running ? "运行中" : config.enabled ? "等待 ViaLite" : "未启用";
+    $("#viaHealthLabel").textContent = runtime.running ? "Running" : config.enabled ? "Waiting for ViaLite" : "Not enabled";
     const message = $("#viaMessage");
     message.textContent = runtime.running
-      ? `已为 ${runtime.managed_backends} 个唯一后端建立回环翻译入口。`
-      : runtime.error || "未启用；YvLink 会直接连接实际后端。";
+      ? `Loopback translation endpoints ready for ${runtime.managed_backends} unique backends.`
+      : runtime.error || "Disabled; YvLink connects directly to the backend.";
     message.className = `crossplay-message${runtime.error ? " error" : runtime.running ? " success" : ""}`;
   }
 
@@ -433,14 +433,14 @@
     if (subprocessOnly) subprocessOnly.hidden = provider !== "geyserlite" || mode !== "subprocess";
     if (floodgateOnly) floodgateOnly.hidden = provider !== "geyserlite" || authType !== "floodgate";
     $("#crossplaySettingsHint").textContent = provider === "geyserlite"
-      ? "由 mc-proxy 托管 GeyserLite"
-      : "外部 Geyser 必须使用相同参数";
+      ? "GeyserLite is hosted by YvLink"
+      : "External Geyser must use matching settings";
   }
 
   function openRuleModal(rule = null) {
     state.modalReturnFocus = document.activeElement;
     state.editingRuleId = rule?.id || null;
-    $("#ruleModalTitle").textContent = rule ? "编辑路由" : "新建路由";
+    $("#ruleModalTitle").textContent = rule ? "Edit Route" : "New Route";
     const form = $("#ruleForm");
     form.reset();
     form.elements.id.disabled = Boolean(rule);
@@ -475,7 +475,7 @@
       form.elements.fallback_max.value = rule.status?.fallback?.max ?? "";
       form.elements.whitelist_enabled.checked = Boolean(rule.whitelist_enabled);
       form.elements.whitelist.value = (rule.whitelist || []).join("\n");
-      form.elements.whitelist_message.value = rule.whitelist_message || "§c你不在此服务器的白名单中。";
+      form.elements.whitelist_message.value = rule.whitelist_message || "§cYou are not in the whitelist of this server.";
       form.elements.crossplay_enabled.checked = Boolean(rule.crossplay_enabled);
       form.elements.enabled.checked = rule.enabled;
     } else {
@@ -502,14 +502,14 @@
       form.elements.status_online.value = 0;
       form.elements.status_max.value = 100;
       form.elements.status_fallback_enabled.checked = false;
-      form.elements.fallback_motd.value = "§c服务器维护中，请稍后再试";
-      form.elements.fallback_version_name.value = "后端离线";
+      form.elements.fallback_motd.value = "§cServer maintenance in progress, please try again later";
+      form.elements.fallback_version_name.value = "Backend Offline";
       form.elements.fallback_protocol.value = -1;
       form.elements.fallback_online.value = 0;
       form.elements.fallback_max.value = 100;
       form.elements.whitelist_enabled.checked = false;
       form.elements.whitelist.value = "";
-      form.elements.whitelist_message.value = "§c你不在此服务器的白名单中。";
+      form.elements.whitelist_message.value = "§cYou are not in the whitelist of this server.";
       form.elements.crossplay_enabled.checked = false;
     }
     syncRuleAdvancedFields();
@@ -528,7 +528,7 @@
     const submit = form.querySelector('[type="submit"]');
     const originalLabel = submit.textContent;
     submit.disabled = true;
-    submit.textContent = "正在保存…";
+    submit.textContent = "Saving…";
     const statusEnabled = form.elements.status_enabled.checked;
     const optionalNumber = name => {
       const value = form.elements[name].value.trim();
@@ -588,7 +588,7 @@
       closeRuleModal();
       state.config = await api("/config");
       await pollStatus();
-      toast("转发规则已保存并应用");
+      toast("Route saved and applied");
     } finally {
       submit.disabled = false;
       submit.textContent = originalLabel;
@@ -611,30 +611,30 @@
       status: rule.status || null,
       whitelist_enabled: Boolean(rule.whitelist_enabled),
       whitelist: rule.whitelist || [],
-      whitelist_message: rule.whitelist_message || "§c你不在此服务器的白名单中。",
+      whitelist_message: rule.whitelist_message || "§cYou are not in the whitelist of this server.",
       crossplay_enabled: Boolean(rule.crossplay_enabled),
       enabled: !rule.enabled,
     };
     await api(`/rules/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) });
     state.config = await api("/config");
     await pollStatus();
-    toast(payload.enabled ? "规则已启用" : "规则已停用");
+    toast(payload.enabled ? "Route enabled" : "Route disabled");
   }
 
   async function deleteRule(id) {
     const rule = state.status.rules.find(item => item.id === id);
-    if (!rule || !confirm(`确认删除转发规则“${rule.name}”？`)) return;
+    if (!rule || !confirm(`Delete route "${rule.name}"?`)) return;
     await api(`/rules/${encodeURIComponent(id)}`, { method: "DELETE" });
     state.config = await api("/config");
     await pollStatus();
-    toast("转发规则已删除");
+    toast("Route deleted");
   }
 
   async function saveSettings(form) {
     const submit = form.querySelector('[type="submit"]');
     const originalLabel = submit.textContent;
     submit.disabled = true;
-    submit.textContent = "正在应用…";
+    submit.textContent = "Applying…";
     const payload = {};
     for (const key of [
       "max_connections", "connect_timeout_ms", "handshake_timeout_ms", "shutdown_grace_secs", "copy_buffer_bytes",
@@ -648,7 +648,7 @@
       state.config = await api("/config", { method: "PUT", body: JSON.stringify(payload) });
       renderSettings();
       await pollStatus();
-      toast("全局配置已保存并应用");
+      toast("Global configuration saved and applied");
     } finally {
       submit.disabled = false;
       submit.textContent = originalLabel;
@@ -659,7 +659,7 @@
     const submit = form.querySelector('[type="submit"]');
     const originalLabel = submit.textContent;
     submit.disabled = true;
-    submit.textContent = "正在验证…";
+    submit.textContent = "Saving…";
     const payload = {
       enabled: form.elements.enabled.checked,
       provider: form.elements.provider.value,
@@ -681,7 +681,7 @@
       state.crossplay = await api("/crossplay", { method: "PUT", body: JSON.stringify(payload) });
       state.config = await api("/config");
       renderCrossplay();
-      toast(state.crossplay.status.online ? "互通配置已保存，Geyser UDP 在线" : "互通配置已保存，等待 Geyser 上线");
+      toast(state.crossplay.status.online ? "Crossplay settings saved; Geyser UDP is online" : "Crossplay settings saved; waiting for Geyser");
     } finally {
       submit.disabled = false;
       submit.textContent = originalLabel;
@@ -692,7 +692,7 @@
     const submit = form.querySelector('[type="submit"]');
     const originalLabel = submit.textContent;
     submit.disabled = true;
-    submit.textContent = "正在重建…";
+    submit.textContent = "Rebuilding…";
     const payload = {
       enabled: form.elements.enabled.checked,
       binary_path: form.elements.binary_path.value.trim() || null,
@@ -704,7 +704,7 @@
       state.via = await api("/via", { method: "PUT", body: JSON.stringify(payload) });
       state.config = await api("/config");
       renderVia();
-      toast(state.via.runtime.running ? "ViaLite 已就绪" : "配置已保存，请检查 ViaLite 状态");
+      toast(state.via.runtime.running ? "ViaLite ready" : "Settings saved; check ViaLite status");
     } finally {
       submit.disabled = false;
       submit.textContent = originalLabel;
@@ -718,7 +718,7 @@
       item.setAttribute("aria-selected", String(active));
     });
     $$(".page").forEach(item => item.classList.toggle("active", item.id === `page-${page}`));
-    const labels = { overview: "运行概览", rules: "域名路由", crossplay: "基岩版互通", settings: "入口配置" };
+    const labels = { overview: "Overview", rules: "Domain routes", crossplay: "Bedrock crossplay", settings: "Ingress settings" };
     $("#pageTitle").textContent = labels[page] || labels.overview;
     $("#sidebar").classList.remove("open");
     $("#mobileMenu").setAttribute("aria-expanded", "false");
@@ -753,8 +753,8 @@
   function setConnectionState(online) {
     const dot = $("#statusDot");
     dot.className = `status-dot ${online ? "online" : "offline"}`;
-    $("#connectionState").textContent = online ? "管理端在线" : "连接中断";
-    $("#lastUpdated").textContent = online ? `同步于 ${new Date().toLocaleTimeString("zh-CN", { hour12: false })}` : "等待重新连接";
+    $("#connectionState").textContent = online ? "Admin connected" : "Connection lost";
+    $("#lastUpdated").textContent = online ? `Synced at ${new Date().toLocaleTimeString("en-GB", { hour12: false })}` : "Waiting for reconnection";
   }
 
   function formatBytes(value) {
@@ -768,7 +768,7 @@
   }
 
   function formatNumber(value) {
-    return new Intl.NumberFormat("zh-CN").format(Number(value) || 0);
+    return new Intl.NumberFormat("en-GB").format(Number(value) || 0);
   }
 
   function backendList(rule) {
@@ -777,25 +777,25 @@
 
   function strategyLabel(strategy) {
     return ({
-      sequential: "顺序故障转移",
-      random: "随机",
-      "round-robin": "轮询",
-      "least-connections": "最少连接",
-      "lowest-latency": "最低延迟",
+      sequential: "Sequential failover",
+      random: "Random",
+      "round-robin": "Round robin",
+      "least-connections": "Least connections",
+      "lowest-latency": "Lowest latency",
     })[strategy || "sequential"] || strategy;
   }
 
   function proxyProtocolLabel(version) {
-    return ({ off: "关闭", v1: "PROXY v1", v2: "PROXY v2" })[version || "off"] || version;
+    return ({ off: "Off", v1: "PROXY v1", v2: "PROXY v2" })[version || "off"] || version;
   }
 
   function backendHealthView(health, enabled) {
-    if (!enabled) return { className: "disabled", label: "未启用" };
+    if (!enabled) return { className: "disabled", label: "Not enabled" };
     return ({
-      healthy: { className: "healthy", label: "健康" },
-      unhealthy: { className: "unhealthy", label: "离线" },
-      unknown: { className: "unknown", label: "等待首检" },
-    })[health || "unknown"] || { className: "unknown", label: "状态未知" };
+      healthy: { className: "healthy", label: "Healthy" },
+      unhealthy: { className: "unhealthy", label: "Offline" },
+      unknown: { className: "unknown", label: "Awaiting first check" },
+    })[health || "unknown"] || { className: "unknown", label: "Status unknown" };
   }
 
   function crossplayAuthLabel(authType) {
@@ -803,25 +803,25 @@
   }
 
   function crossplayProviderLabel(provider) {
-    return ({ external: "外部 Geyser Standalone", geyserlite: "内置 GeyserLite" })[provider] || provider;
+    return ({ external: "External Geyser Standalone", geyserlite: "Built-in GeyserLite" })[provider] || provider;
   }
 
   function crossplayRuntimeLabel(config, runtime) {
     if (!runtime) return "--";
-    if (config.provider !== "geyserlite") return "独立进程 · 未托管";
-    if (!runtime.available) return "当前平台/构建未启用 GeyserLite";
+    if (config.provider !== "geyserlite") return "External process · not hosted";
+    if (!runtime.available) return "GeyserLite is unavailable on this platform or build";
     if (runtime.running) {
-      const mode = runtime.mode === "subprocess" ? "子进程" : "进程内";
-      return `托管中 · ${mode}`;
+      const mode = runtime.mode === "subprocess" ? "Subprocess" : "In process";
+      return `Running · ${mode}`;
     }
-    return runtime.error ? "启动失败" : "已停止";
+    return runtime.error ? "Start failed" : "Stopped";
   }
 
   function formatUptime(seconds) {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    return days ? `${days}天 ${hours}小时` : hours ? `${hours}小时 ${minutes}分` : `${minutes}分`;
+    return days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes}m` : `${minutes}m`;
   }
 
   function escapeHtml(value) {
@@ -841,7 +841,7 @@
   function toggleChart() {
     state.chartPaused = !state.chartPaused;
     $("#chartToggle").setAttribute("aria-pressed", String(state.chartPaused));
-    $("#chartToggleText").textContent = state.chartPaused ? "继续" : "暂停";
+    $("#chartToggleText").textContent = state.chartPaused ? "Resume" : "Pause";
     $("#chartToggle").querySelector("path").setAttribute(
       "d",
       state.chartPaused ? "M8 5v14l11-7L8 5Z" : "M8 5v14m8-14v14",
@@ -855,7 +855,7 @@
     const submit = event.currentTarget.querySelector('[type="submit"]');
     const originalLabel = submit.textContent;
     submit.disabled = true;
-    submit.textContent = "正在验证…";
+    submit.textContent = "Authenticating…";
     try { await login($("#tokenInput").value); }
     catch (error) { $("#loginError").textContent = error.message; }
     finally { submit.disabled = false; submit.textContent = originalLabel; }
@@ -881,7 +881,7 @@
     const button = event.currentTarget;
     const label = button.textContent;
     button.disabled = true;
-    button.textContent = "正在刷新…";
+    button.textContent = "Refreshing…";
     try { await pollUpdates(); }
     finally { button.disabled = false; button.textContent = label; }
   });

@@ -1,57 +1,57 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#020617">
-  <meta name="description" content="Minecraft Java 域名路由、多后端故障转移与基岩互通控制台">
+  <meta name="description" content="Minecraft Java routing, backend failover, and Bedrock crossplay control panel">
   <title>YvLink Control</title>
   <link rel="stylesheet" href="/assets/styles.css?v=20260808-settings1">
 </head>
 <body>
-  <a class="skip-link" href="#mainContent">跳至主内容</a>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <a class="brand" href="/" aria-label="YvLink Control 首页">
+      <a class="brand" href="/" aria-label="YvLink home">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <span class="brand-copy"><strong>YvLink</strong><small>Edge control plane</small></span>
       </a>
 
-      <div class="sidebar-section-label">工作区</div>
-      <nav class="nav" aria-label="管理导航">
+      <div class="sidebar-section-label">Workspace</div>
+      <nav class="nav" aria-label="Management navigation">
         <button class="nav-item active" data-page="overview" aria-selected="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v7H4V4Zm10 0h6v4h-6V4ZM4 15h6v5H4v-5Zm10-3h6v8h-6v-8Z"/></svg>
-          <span>运行概览</span><kbd>01</kbd>
+          <span>Overview</span><kbd>01</kbd>
         </button>
         <button class="nav-item" data-page="rules" aria-selected="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h4m6 0h4M9 6a3 3 0 1 0 6 0 3 3 0 0 0-6 0ZM5 18h4m6 0h4m-10 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"/></svg>
-          <span>域名路由</span><kbd>02</kbd>
+          <span>Domain routes</span><kbd>02</kbd>
         </button>
         <button class="nav-item" data-page="crossplay" aria-selected="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5V5Zm3 3 8 8m0-8-8 8"/><circle cx="12" cy="12" r="2.5"/></svg>
-          <span>基岩互通</span><kbd>03</kbd>
+          <span>Bedrock crossplay</span><kbd>03</kbd>
         </button>
         <button class="nav-item" data-page="settings" aria-selected="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg>
-          <span>入口配置</span><kbd>04</kbd>
+          <span>Ingress settings</span><kbd>04</kbd>
         </button>
       </nav>
 
       <div class="ingress-card" aria-live="polite">
         <div class="ingress-card-head"><span>GAME INGRESS</span><i id="proxyStateChip"></i></div>
         <strong id="ingressAddress">--</strong>
-        <small id="proxyStateText">等待状态同步</small>
+        <small id="proxyStateText">Waiting for status</small>
       </div>
 
       <div class="sidebar-footer">
         <a href="/docs/api" target="_blank" rel="noreferrer" class="docs-link">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6V3Zm8 1v5h5M9 13h7M9 17h7"/></svg>
-          API 文档
+          API documentation
         </a>
         <button id="logoutButton" class="logout-button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4v16h6m4-12 4 4-4 4m-6-4h10"/></svg>
-          退出登录
+          Log out
         </button>
       </div>
     </aside>
@@ -59,28 +59,28 @@
     <main class="main" id="mainContent" tabindex="-1">
       <header class="topbar">
         <div class="topbar-title">
-          <button class="mobile-menu" id="mobileMenu" aria-label="打开导航" aria-expanded="false">
+          <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation" aria-expanded="false">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
           <div>
             <p class="eyebrow">JAVA ROUTING · BEDROCK CROSSPLAY</p>
-            <h1 id="pageTitle">运行概览</h1>
+            <h1 id="pageTitle">Overview</h1>
           </div>
         </div>
         <div class="topbar-status">
-          <button class="update-chip" id="updateBadge" type="button" hidden aria-label="查看自动更新状态">
-            <span class="status-dot" id="updateBadgeDot"></span><span id="updateBadgeText">自动更新</span>
+          <button class="update-chip" id="updateBadge" type="button" hidden aria-label="View auto-update status">
+            <span class="status-dot" id="updateBadgeDot"></span><span id="updateBadgeText">Automatic updates</span>
           </button>
-          <div class="connection-pill"><span class="status-dot" id="statusDot"></span><strong id="connectionState">正在连接</strong></div>
-          <small id="lastUpdated">尚未同步</small>
+          <div class="connection-pill"><span class="status-dot" id="statusDot"></span><strong id="connectionState">Connecting</strong></div>
+          <small id="lastUpdated">Not yet synced</small>
         </div>
       </header>
 
       <section class="page active" id="page-overview">
         <div class="page-intro">
-          <div><span class="section-index">01 / OVERVIEW</span><h2>入口运行态势</h2><p>同一 IP 与端口，按 Minecraft 握手域名将连接送往目标后端。</p></div>
+          <div><span class="section-index">01 / OVERVIEW</span><h2>Ingress status</h2><p>Route connections to backends by the hostname in the Minecraft handshake, using one IP and port.</p></div>
           <button class="outline-button" data-go-page="rules">
-            查看路由
+            View routes
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
           </button>
         </div>
@@ -88,7 +88,7 @@
         <div class="metric-grid">
           <article class="metric-card accent-green">
             <div class="metric-head"><span>ACTIVE SESSIONS</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 1 1 0-8 5 5 0 0 1 9.8-1A4.5 4.5 0 1 1 17 18H7Z"/></svg></div>
-            <strong id="metricActive">0</strong><small id="metricAccepted">累计连接 0</small>
+            <strong id="metricActive">0</strong><small id="metricAccepted">Total connections 0</small>
           </article>
           <article class="metric-card accent-cyan">
             <div class="metric-head"><span>UPSTREAM TOTAL</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m0 0L7 10m5-5 5 5M5 21h14"/></svg></div>
@@ -100,27 +100,27 @@
           </article>
           <article class="metric-card accent-amber">
             <div class="metric-head"><span>ROUTES ONLINE</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h4l2-7 4 12 2-5h4M3 4v16h18"/></svg></div>
-            <strong id="metricRules">0 / 0</strong><small id="metricFailures">失败 0</small>
+            <strong id="metricRules">0 / 0</strong><small id="metricFailures">Failures 0</small>
           </article>
         </div>
 
         <div class="dashboard-grid">
           <article class="panel traffic-panel">
             <div class="panel-header">
-              <div><p class="panel-kicker">LIVE THROUGHPUT</p><h2>实时流量窗口</h2></div>
+              <div><p class="panel-kicker">LIVE THROUGHPUT</p><h2>Live traffic</h2></div>
               <div class="chart-controls">
-                <div class="chart-legend" aria-label="图例">
-                  <span><i class="legend-upload"></i>上传</span>
-                  <span><i class="legend-download"></i>下载</span>
+                <div class="chart-legend" aria-label="Legend">
+                  <span><i class="legend-upload"></i>Upload</span>
+                  <span><i class="legend-download"></i>Download</span>
                 </div>
                 <button class="icon-text-button" id="chartToggle" aria-pressed="false">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14"/></svg>
-                  <span id="chartToggleText">暂停</span>
+                  <span id="chartToggleText">Pause</span>
                 </button>
               </div>
             </div>
             <div class="chart-wrap">
-              <svg id="trafficChart" viewBox="0 0 800 260" preserveAspectRatio="none" role="img" aria-label="最近六十秒实时上下行吞吐折线图">
+              <svg id="trafficChart" viewBox="0 0 800 260" preserveAspectRatio="none" role="img" aria-label="Real-time uplink and downlink throughput line graph in the last 60 seconds">
                 <defs>
                   <linearGradient id="uploadFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".24"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
                   <linearGradient id="downloadFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".20"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient>
@@ -131,55 +131,55 @@
                 <path id="downloadLine" class="chart-line download-line"/>
                 <path id="uploadLine" class="chart-line upload-line"/>
               </svg>
-              <div class="chart-scale"><span id="chartMax">0 B/s</span><span>2 秒采样 · 60 秒窗口</span></div>
+              <div class="chart-scale"><span id="chartMax">0 B/s</span><span>Sampled every 2 seconds · 60-second window</span></div>
             </div>
           </article>
 
           <article class="panel system-panel">
-            <div class="panel-header"><div><p class="panel-kicker">INSTANCE HEALTH</p><h2>实例状态</h2></div><span class="live-label"><i></i>LIVE</span></div>
+            <div class="panel-header"><div><p class="panel-kicker">INSTANCE HEALTH</p><h2>Instance status</h2></div><span class="live-label"><i></i>LIVE</span></div>
             <dl class="system-list">
-              <div><dt>服务版本</dt><dd id="instanceVersion">--</dd></div>
-              <div><dt>持续运行</dt><dd id="instanceUptime">--</dd></div>
-              <div><dt>后端失败</dt><dd id="instanceBackendFailures">0</dd></div>
-              <div><dt>转发异常</dt><dd id="instanceForwardFailures">0</dd></div>
-              <div><dt>拒绝连接</dt><dd id="instanceRejected">0</dd></div>
-              <div><dt>白名单拒绝</dt><dd id="instanceWhitelistDenials">0</dd></div>
-              <div><dt>本地状态响应</dt><dd id="instanceLocalStatus">0</dd></div>
-              <div><dt>状态缓存命中</dt><dd id="instanceStatusCacheHits">0</dd></div>
-              <div><dt>离线回退</dt><dd id="instanceStatusFallbacks">0</dd></div>
-              <div><dt>后端尝试失败</dt><dd id="instanceBackendAttemptFailures">0</dd></div>
-              <div><dt>成功故障转移</dt><dd id="instanceBackendFailovers">0</dd></div>
-              <div><dt>PROXY v1 头</dt><dd id="instanceProxyV1Headers">0</dd></div>
-              <div><dt>PROXY v2 头</dt><dd id="instanceProxyV2Headers">0</dd></div>
-              <div><dt>健康检查成功</dt><dd id="instanceHealthCheckSuccesses">0</dd></div>
-              <div><dt>健康检查失败</dt><dd id="instanceHealthCheckFailures">0</dd></div>
+              <div><dt>Service version</dt><dd id="instanceVersion">--</dd></div>
+              <div><dt>Uptime</dt><dd id="instanceUptime">--</dd></div>
+              <div><dt>Backend failures</dt><dd id="instanceBackendFailures">0</dd></div>
+              <div><dt>Forwarding failures</dt><dd id="instanceForwardFailures">0</dd></div>
+              <div><dt>Rejected connections</dt><dd id="instanceRejected">0</dd></div>
+              <div><dt>Whitelist denials</dt><dd id="instanceWhitelistDenials">0</dd></div>
+              <div><dt>Local status responses</dt><dd id="instanceLocalStatus">0</dd></div>
+              <div><dt>Status cache hits</dt><dd id="instanceStatusCacheHits">0</dd></div>
+              <div><dt>Status fallbacks</dt><dd id="instanceStatusFallbacks">0</dd></div>
+              <div><dt>Failed backend attempts</dt><dd id="instanceBackendAttemptFailures">0</dd></div>
+              <div><dt>Successful failovers</dt><dd id="instanceBackendFailovers">0</dd></div>
+              <div><dt>PROXY v1 headers</dt><dd id="instanceProxyV1Headers">0</dd></div>
+              <div><dt>PROXY v2 headers</dt><dd id="instanceProxyV2Headers">0</dd></div>
+              <div><dt>Successful health checks</dt><dd id="instanceHealthCheckSuccesses">0</dd></div>
+              <div><dt>Failed health checks</dt><dd id="instanceHealthCheckFailures">0</dd></div>
             </dl>
           </article>
         </div>
 
         <article class="panel protocol-panel" aria-describedby="protocolObservationNote">
           <div class="panel-header">
-            <div><p class="panel-kicker">HANDSHAKE FINGERPRINTS</p><h2>协议握手观察</h2></div>
-            <span class="settings-hint">只读取入口标记，不解析后续模组数据</span>
+            <div><p class="panel-kicker">HANDSHAKE FINGERPRINTS</p><h2>Handshake fingerprints</h2></div>
+            <span class="settings-hint">Only initial handshake markers are inspected; later mod traffic is not parsed.</span>
           </div>
           <div class="protocol-grid">
-            <div><span>原版 / Fabric</span><strong id="protocolUnmarked">0</strong><small>无加载器标记</small></div>
-            <div><span>旧版 Forge</span><strong id="protocolLegacyForge">0</strong><small>FML · 1.8–1.12.2</small></div>
-            <div><span>现代 Forge Login</span><strong id="protocolModernForgeLogin">0</strong><small>FML2 / FML3</small></div>
-            <div><span>Configuration 系</span><strong id="protocolConfigurationForge">0</strong><small>FORGE / FORGE2</small></div>
+            <div><span>Vanilla / Fabric</span><strong id="protocolUnmarked">0</strong><small>No loader marker</small></div>
+            <div><span>Legacy Forge</span><strong id="protocolLegacyForge">0</strong><small>FML · 1.8–1.12.2</small></div>
+            <div><span>Modern Forge Login</span><strong id="protocolModernForgeLogin">0</strong><small>FML2 / FML3</small></div>
+            <div><span>Forge configuration</span><strong id="protocolConfigurationForge">0</strong><small>FORGE / FORGE2</small></div>
           </div>
-          <p class="protocol-note" id="protocolObservationNote">Fabric 与原版在初始 Handshake 中没有可安全区分的统一标记，因此合并统计；这些数字用于兼容性观察，不代表玩家已经完成登录。</p>
+          <p class="protocol-note" id="protocolObservationNote">Vanilla and Fabric cannot be reliably distinguished in the initial handshake, so their counts are combined. These counts do not indicate successful player logins.</p>
         </article>
 
         <article class="panel route-table-panel">
           <div class="panel-header">
-            <div><p class="panel-kicker">HOST MAP</p><h2>域名路由表</h2></div>
-            <button class="text-action" data-go-page="rules">管理规则</button>
+            <div><p class="panel-kicker">HOST MAP</p><h2>Domain route table</h2></div>
+            <button class="text-action" data-go-page="rules">Manage routes</button>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>规则</th><th>匹配域名</th><th>目标后端</th><th>共享入口</th><th>状态</th></tr></thead>
-              <tbody id="overviewRuleRows"><tr><td colspan="5" class="empty-cell">等待状态数据</td></tr></tbody>
+              <thead><tr><th>Rule</th><th>Matching hosts</th><th>Backends</th><th>Shared ingress</th><th>Status</th></tr></thead>
+              <tbody id="overviewRuleRows"><tr><td colspan="5" class="empty-cell">Waiting for status data</td></tr></tbody>
             </table>
           </div>
         </article>
@@ -187,10 +187,10 @@
 
       <section class="page" id="page-rules">
         <div class="page-intro">
-          <div><span class="section-index">02 / ROUTES</span><h2>域名路由</h2><p>按列表顺序首个命中；把 <code>*</code> 放在最后作为默认兜底。</p></div>
+          <div><span class="section-index">02 / ROUTES</span><h2>Domain routes</h2><p>Rules match in order. Put <code>*</code> last as the fallback route.</p></div>
           <button class="primary-button" id="addRuleButton">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            新建路由
+            New Route
           </button>
         </div>
         <div class="rule-grid" id="ruleGrid"></div>
@@ -198,74 +198,74 @@
 
       <section class="page" id="page-crossplay">
         <div class="page-intro">
-          <div><span class="section-index">03 / COMPATIBILITY</span><h2>互通与版本兼容</h2><p>Geyser 处理 Bedrock 会话；ViaLite 仅在已选路后兼容 Java 后端版本。</p></div>
+          <div><span class="section-index">03 / COMPATIBILITY</span><h2>Crossplay and version compatibility</h2><p>Geyser handles Bedrock sessions. ViaLite adapts Java backend versions after a route is selected.</p></div>
           <span class="state-badge off" id="crossplayStateBadge">DISABLED</span>
         </div>
         <div class="crossplay-grid">
           <article class="panel crossplay-status-panel">
-            <div class="panel-header"><div><p class="panel-kicker">GEYSER SIDECAR</p><h2>翻译层状态</h2></div><span class="live-label off" id="crossplayLiveLabel"><i></i><span id="crossplayHealthLabel">未启用</span></span></div>
+            <div class="panel-header"><div><p class="panel-kicker">GEYSER SIDECAR</p><h2>Translation layer status</h2></div><span class="live-label off" id="crossplayLiveLabel"><i></i><span id="crossplayHealthLabel">Not enabled</span></span></div>
             <dl class="system-list">
-              <div><dt>Bedrock UDP 入口</dt><dd id="crossplayListen">--</dd></div>
-              <div><dt>Java 目标</dt><dd id="crossplayJavaTarget">--</dd></div>
-              <div><dt>认证方式</dt><dd id="crossplayAuthType">--</dd></div>
-              <div><dt>翻译层提供方</dt><dd id="crossplayProvider">--</dd></div>
-              <div><dt>托管运行时</dt><dd id="crossplayRuntime">--</dd></div>
-              <div><dt>RakNet 延迟</dt><dd id="crossplayLatency">--</dd></div>
+              <div><dt>Bedrock UDP ingress</dt><dd id="crossplayListen">--</dd></div>
+              <div><dt>Java target</dt><dd id="crossplayJavaTarget">--</dd></div>
+              <div><dt>Authentication method</dt><dd id="crossplayAuthType">--</dd></div>
+              <div><dt>Translator</dt><dd id="crossplayProvider">--</dd></div>
+              <div><dt>Runtime uptime</dt><dd id="crossplayRuntime">--</dd></div>
+              <div><dt>RakNet latency</dt><dd id="crossplayLatency">--</dd></div>
             </dl>
-            <p class="crossplay-message" id="crossplayMessage" aria-live="polite">保存配置后检查 Geyser UDP 状态。</p>
+            <p class="crossplay-message" id="crossplayMessage" aria-live="polite">Save the settings to check Geyser's UDP status.</p>
           </article>
           <article class="panel compatibility-panel">
-            <div class="panel-header"><div><p class="panel-kicker">COMPATIBILITY</p><h2>互通边界</h2></div></div>
+            <div class="panel-header"><div><p class="panel-kicker">COMPATIBILITY</p><h2>Crossplay limits</h2></div></div>
             <ul class="compatibility-list">
-              <li><strong>UDP 独立入口</strong><span>基岩版默认连接 19132/UDP，不能与 Java TCP 数据流直接混用。</span></li>
-              <li><strong>模组限制</strong><span>纯服务端 Fabric/NeoForge 功能可尝试；要求客户端安装模组的内容无法翻译。</span></li>
-              <li><strong>账号安全</strong><span>Online 要求 Java 账号登录；Floodgate 仅用于你能安装对应插件/模组的后端，密钥不得泄露。</span></li>
+              <li><strong>Separate UDP ingress</strong><span>Bedrock uses UDP port 19132 by default and cannot share the Java TCP stream.</span></li>
+              <li><strong>Mod limitations</strong><span>Server-only Fabric and NeoForge mods may work; client-required mod content cannot be translated.</span></li>
+              <li><strong>Account security</strong><span>Online mode requires a Java account. Use Floodgate only with a compatible backend plugin and keep its key secret.</span></li>
             </ul>
           </article>
         </div>
         <article class="panel settings-panel">
-          <div class="panel-header"><div><p class="panel-kicker">CROSSPLAY MODE</p><h2>互通配置</h2></div><span class="settings-hint" id="crossplaySettingsHint">外部 Geyser 必须使用相同参数</span></div>
+          <div class="panel-header"><div><p class="panel-kicker">CROSSPLAY MODE</p><h2>Crossplay settings</h2></div><span class="settings-hint" id="crossplaySettingsHint">External Geyser must use matching settings</span></div>
           <form id="crossplayForm" class="form-grid">
-            <label><span>Bedrock UDP 监听</span><input name="bedrock_listen" placeholder="0.0.0.0:19132" required><small>需在防火墙同时开放该 UDP 端口。</small></label>
-            <label><span>Java 路由域名</span><input name="java_address" list="crossplayRouteHosts" placeholder="bedrock.example.com" required><datalist id="crossplayRouteHosts"></datalist><small>应匹配一条 mc-proxy Host 规则，并解析到本机 Java 入口。</small></label>
-            <label><span>Java 入口端口</span><input name="java_port" type="number" min="1" max="65535" required><small>通常与全局 Java 监听端口相同。</small></label>
-            <label><span>认证方式</span><select name="auth_type"><option value="online">Online · 登录 Java 账号</option><option value="floodgate">Floodgate · 基岩账号直连</option><option value="offline">Offline · 仅可信测试环境</option></select><small>公网生产不建议 Offline；Floodgate 需要后端配套安装。</small></label>
-            <label class="full"><span>翻译层提供方</span><select name="provider" aria-controls="geyserliteFields"><option value="external">外部 Geyser Standalone（独立进程）</option><option value="geyserlite">内置 GeyserLite（由 mc-proxy 托管）</option></select><small>external 需另行部署 Geyser 并保持参数一致；geyserlite 由代理直接拉起，无需 JVM。</small></label>
+            <label><span>Bedrock UDP listen address</span><input name="bedrock_listen" placeholder="0.0.0.0:19132" required><small>Allow this UDP port through the firewall if crossplay is enabled.</small></label>
+            <label><span>Java route hostname</span><input name="java_address" list="crossplayRouteHosts" placeholder="bedrock.example.com" required><datalist id="crossplayRouteHosts"></datalist><small>This hostname must match an enabled YvLink route and resolve to the local Java ingress.</small></label>
+            <label><span>Java ingress port</span><input name="java_port" type="number" min="1" max="65535" required><small>Usually the same as the global Java listening port.</small></label>
+            <label><span>Authentication method</span><select name="auth_type"><option value="online">Online · Java account required</option><option value="floodgate">Floodgate · Bedrock account</option><option value="offline">Offline · trusted test environments only</option></select><small>Offline mode is unsafe for public servers. Floodgate requires a compatible backend installation.</small></label>
+            <label class="full"><span>Translator</span><select name="provider" aria-controls="geyserliteFields"><option value="external">External Geyser Standalone (independent process)</option><option value="geyserlite">Built-in GeyserLite (hosted by mc-proxy)</option></select><small>External mode requires a separate Geyser process with matching settings. GeyserLite runs under YvLink without a JVM.</small></label>
             <section class="protocol-section full" id="geyserliteSection" aria-labelledby="geyserliteFieldsTitle" hidden>
-              <p class="panel-kicker full" id="geyserliteFieldsTitle">GEYSERLITE 托管参数</p>
+              <p class="panel-kicker full" id="geyserliteFieldsTitle">GeyserLite runtime settings</p>
               <div class="nested-fields" id="geyserliteFields">
-                <label><span>运行模式</span><select name="geyser_mode"><option value="embedded">Embedded · 进程内加载（默认）</option><option value="subprocess">Subprocess · 托管子进程</option></select><small>embedded 开销最低，但原生库崩溃会带走整个代理；subprocess 隔离性更好。</small></label>
-                <label><span>MOTD 第一行</span><input name="geyser_motd_line1" maxlength="64"></label>
-                <label><span>MOTD 第二行</span><input name="geyser_motd_line2" maxlength="64"></label>
-                <label class="geyser-embedded-only"><span>libgeyserlite.so 路径</span><input name="geyser_library_path" placeholder="留空按环境变量/系统路径/自动下载定位"></label>
-                <label class="geyser-subprocess-only" hidden><span>原生可执行文件路径</span><input name="geyser_binary_path" placeholder="留空按环境变量/自动下载定位"></label>
-                <label class="toggle-field full"><span><strong>离线模式</strong><small>禁止任何网络获取；必须已通过路径或内嵌特性提供原生库/可执行文件。</small></span><input name="geyser_offline" type="checkbox"><i></i></label>
-                <label class="full geyser-floodgate-only" hidden><span>Floodgate 密钥（16 字节 · 32 位十六进制）</span><input name="geyser_floodgate_key" type="password" autocomplete="off" placeholder="00112233445566778899aabbccddeeff"><small class="field-warning">与后端 Floodgate 配套的 AES-128 密钥；等同密钥文件，请勿泄露给不受信任方。</small></label>
-                <p class="field-note full">默认构建已启用自动下载特性；二进制会从 GitHub Release 获取 libgeyserlite.so 并校验 SHA-256。离线生产环境请改用 <code>--features geyserlite-embed</code> 构建，或预置 <code>GEYSERLITE_LIBRARY</code> 环境变量。</p>
+                <label><span>Run mode</span><select name="geyser_mode"><option value="embedded">Embedded · load in process (default)</option><option value="subprocess">Subprocess · isolated child process</option></select><small>Embedded mode has less overhead, but a native library crash stops YvLink. Subprocess mode provides isolation.</small></label>
+                <label><span>MOTD first line</span><input name="geyser_motd_line1" maxlength="64"></label>
+                <label><span>MOTD second line</span><input name="geyser_motd_line2" maxlength="64"></label>
+                <label class="geyser-embedded-only"><span>libgeyserlite.so path</span><input name="geyser_library_path" placeholder="Leave blank for automatic detection or download"></label>
+                <label class="geyser-subprocess-only" hidden><span>Native executable path</span><input name="geyser_binary_path" placeholder="Leave blank for automatic detection or download"></label>
+                <label class="toggle-field full"><span><strong>Offline mode</strong><small>Disables downloads. Provide the native library or executable through a path or an embedded build.</small></span><input name="geyser_offline" type="checkbox"><i></i></label>
+                <label class="full geyser-floodgate-only" hidden><span>Floodgate key (16 bytes / 32 hex digits)</span><input name="geyser_floodgate_key" type="password" autocomplete="off" placeholder="00112233445566778899aabbccddeeff"><small class="field-warning">AES-128 key shared with the backend Floodgate plugin. Keep it secret.</small></label>
+                <p class="field-note full">The default build downloads libgeyserlite.so from a GitHub release and verifies its SHA-256 checksum. For an offline deployment, build with <code>--features geyserlite-embed</code> or set <code>GEYSERLITE_LIBRARY</code>.</p>
               </div>
             </section>
-            <label class="toggle-field ingress-toggle full"><span><strong>启用互通模式监控</strong><small>启用后控制台会用 RakNet Ping 验证 Geyser 是否真正监听，而不是只显示配置已保存。</small></span><input name="enabled" type="checkbox"><i></i></label>
-            <div class="form-actions"><button class="primary-button" type="submit">保存互通配置</button></div>
+            <label class="toggle-field ingress-toggle full"><span><strong>Enable crossplay monitoring</strong><small>When enabled, the console uses RakNet Ping to check whether Geyser is responding.</small></span><input name="enabled" type="checkbox"><i></i></label>
+            <div class="form-actions"><button class="primary-button" type="submit">Save crossplay settings</button></div>
           </form>
         </article>
         <div class="crossplay-grid via-grid">
           <article class="panel crossplay-status-panel">
-            <div class="panel-header"><div><p class="panel-kicker">VIALITE SIDECAR</p><h2>后端版本兼容</h2></div><span class="live-label off" id="viaLiveLabel"><i></i><span id="viaHealthLabel">未启用</span></span></div>
+            <div class="panel-header"><div><p class="panel-kicker">VIALITE SIDECAR</p><h2>Backend compatibility</h2></div><span class="live-label off" id="viaLiveLabel"><i></i><span id="viaHealthLabel">Not enabled</span></span></div>
             <dl class="system-list">
-              <div><dt>运行方式</dt><dd>隔离子进程</dd></div>
-              <div><dt>Gate 协议</dt><dd id="viaGateProtocol">--</dd></div>
-              <div><dt>后端协议</dt><dd id="viaBackendVersion">--</dd></div>
-              <div><dt>托管后端</dt><dd id="viaManagedBackends">--</dd></div>
-              <div><dt>运行状态</dt><dd id="viaRuntime">--</dd></div>
+              <div><dt>Run mode</dt><dd>Isolated subprocess</dd></div>
+              <div><dt>Ingress protocol</dt><dd id="viaGateProtocol">--</dd></div>
+              <div><dt>Backend protocol</dt><dd id="viaBackendVersion">--</dd></div>
+              <div><dt>Managed backends</dt><dd id="viaManagedBackends">--</dd></div>
+              <div><dt>Runtime status</dt><dd id="viaRuntime">--</dd></div>
             </dl>
-            <p class="crossplay-message" id="viaMessage" aria-live="polite">启用后会先完成域名选路，再经 ViaLite 连到实际后端。</p>
+            <p class="crossplay-message" id="viaMessage" aria-live="polite">YvLink selects a route before passing the connection through ViaLite to the backend.</p>
           </article>
           <article class="panel compatibility-panel">
-            <div class="panel-header"><div><p class="panel-kicker">SAFE BOUNDARY</p><h2>版本兼容边界</h2></div></div>
+            <div class="panel-header"><div><p class="panel-kicker">SAFE BOUNDARY</p><h2>Version compatibility limits</h2></div></div>
             <ul class="compatibility-list">
-              <li><strong>后端侧翻译</strong><span>ViaLite 不在客户端前面；客户端必须先能完成 YvLink 的 Java 握手。</span></li>
-              <li><strong>不传 PROXY 头</strong><span>启用后，所有路由的 PROXY Protocol 必须关闭，避免破坏 ViaLite 的 Minecraft 握手。</span></li>
-              <li><strong>独立于 Geyser</strong><span>GeyserLite 负责 Bedrock→Java；ViaLite 只处理 Java→后端的版本差异。</span></li>
+              <li><strong>Backend protocol translation</strong><span>ViaLite runs after YvLink selects a route. Clients must first complete the YvLink Java handshake.</span></li>
+              <li><strong>No PROXY header</strong><span>When ViaLite is enabled, set PROXY Protocol to off on every route so it receives a valid Minecraft handshake.</span></li>
+              <li><strong>Separate responsibilities</strong><span>GeyserLite translates Bedrock to Java; ViaLite handles Java protocol differences with the backend.</span></li>
             </ul>
           </article>
         </div>
@@ -273,52 +273,52 @@
 
       <section class="page" id="page-settings">
         <div class="page-intro">
-          <div><span class="section-index">04 / SETTINGS</span><h2>设置与优化</h2><p>集中管理入口性能、版本兼容与自动更新状态。</p></div>
+          <div><span class="section-index">04 / SETTINGS</span><h2>Settings and optimization</h2><p>Manage ingress performance, version compatibility, and update status.</p></div>
         </div>
         <div class="settings-summary-grid">
           <article class="panel update-panel">
-            <div class="panel-header"><div><p class="panel-kicker">SAFE AUTO UPDATE</p><h2>自动更新</h2></div><span class="state-badge off" id="updateStateBadge">检查中</span></div>
+            <div class="panel-header"><div><p class="panel-kicker">SAFE AUTO UPDATE</p><h2>Automatic updates</h2></div><span class="state-badge off" id="updateStateBadge">Checking</span></div>
             <div class="update-status-body">
-              <strong id="updateCurrentVersion">当前版本 --</strong>
-              <p id="updateMessage" aria-live="polite">正在读取更新器状态…</p>
-              <div class="update-actions"><button class="secondary-button" id="updateRefreshButton" type="button">刷新状态</button><span>每日由 systemd 定时检查 GitHub Release</span></div>
+              <strong id="updateCurrentVersion">Current version --</strong>
+              <p id="updateMessage" aria-live="polite">Loading update status…</p>
+              <div class="update-actions"><button class="secondary-button" id="updateRefreshButton" type="button">Refresh status</button><span>Daily systemd check for GitHub releases</span></div>
             </div>
           </article>
           <article class="panel optimization-panel">
-            <div class="panel-header"><div><p class="panel-kicker">NETWORK PATH</p><h2>网络包优化</h2></div></div>
+            <div class="panel-header"><div><p class="panel-kicker">NETWORK PATH</p><h2>Packet path optimization</h2></div></div>
             <ul class="compatibility-list">
-              <li><strong>YvLink 入口优化</strong><span>下方的 TCP_NODELAY、复制缓冲区、Socket 缓冲区和 Backlog 会立即影响代理数据路径。</span></li>
-              <li><strong>NotEnoughBandwidth</strong><span>它是 Fabric 客户端/服务端 Mod，不是代理开关；请在自有 Fabric 后端与客户端同时部署，YvLink 会保持数据透传。</span></li>
+              <li><strong>YvLink ingress tuning</strong><span>TCP_NODELAY, copy buffers, socket buffers, and listen backlog affect the proxy's network path.</span></li>
+              <li><strong>NotEnoughBandwidth</strong><span>This Fabric mod runs on clients and backends. It is not a YvLink setting; YvLink forwards its traffic unchanged.</span></li>
             </ul>
           </article>
         </div>
         <article class="panel settings-panel via-settings-panel">
-          <div class="panel-header"><div><p class="panel-kicker">MANAGED VIALITE</p><h2>Java 后端版本兼容</h2></div><span class="settings-hint">部署脚本已校验安装原生运行时</span></div>
+          <div class="panel-header"><div><p class="panel-kicker">MANAGED VIALITE</p><h2>Java backend compatibility</h2></div><span class="settings-hint">Install the ViaLite runtime before enabling this feature</span></div>
           <form id="viaForm" class="form-grid">
-            <label><span>ViaLite 可执行文件</span><input name="binary_path" placeholder="/opt/mc-proxy/vialite/vialite"><small>仅接受绝对路径；当前服务器已预置该运行时。</small></label>
-            <label><span>运行时目录</span><input name="runtime_dir" placeholder="/run/mc-proxy/vialite" required><small>仅保存受管临时 JSON 配置，重启后自动清理。</small></label>
-            <label><span>YvLink → ViaLite 协议</span><input name="gate_protocol" value="auto" maxlength="64" required><small>通常保持 auto。</small></label>
-            <label><span>ViaLite → 后端协议</span><input name="backend_version" value="auto" maxlength="64" required><small>后端屏蔽 Status 时改为明确版本。</small></label>
-            <label class="toggle-field ingress-toggle full"><span><strong>启用 Java 后端版本兼容</strong><small>保存后按已启用路由重建隔离回环入口；未成功就绪时代理会安全直连后端并报告错误。</small></span><input name="enabled" type="checkbox"><i></i></label>
-            <div class="form-actions"><button class="primary-button" type="submit">保存 ViaLite 配置</button></div>
+            <label><span>ViaLite executable</span><input name="binary_path" placeholder="/opt/mc-proxy/vialite/vialite"><small>Use an absolute path to the installed ViaLite executable.</small></label>
+            <label><span>Runtime directory</span><input name="runtime_dir" placeholder="/run/mc-proxy/vialite" required><small>Temporary managed JSON files are stored here and cleaned up after restart.</small></label>
+            <label><span>YvLink → ViaLite protocol</span><input name="gate_protocol" value="auto" maxlength="64" required><small>Usually leave this as auto.</small></label>
+            <label><span>ViaLite → Backend protocol</span><input name="backend_version" value="auto" maxlength="64" required><small>Set an explicit version if the backend does not report its protocol in Status responses.</small></label>
+            <label class="toggle-field ingress-toggle full"><span><strong>Enable Java backend compatibility</strong><small>After saving, ViaLite creates loopback listeners for enabled routes. If it fails, YvLink connects directly to the backend and reports the error.</small></span><input name="enabled" type="checkbox"><i></i></label>
+            <div class="form-actions"><button class="primary-button" type="submit">Save ViaLite configuration</button></div>
           </form>
         </article>
         <article class="panel settings-panel">
-          <div class="panel-header"><div><p class="panel-kicker">GLOBAL SETTINGS</p><h2>连接与性能参数</h2></div><span class="settings-hint">保存后立即应用</span></div>
+          <div class="panel-header"><div><p class="panel-kicker">GLOBAL SETTINGS</p><h2>Connection and performance settings</h2></div><span class="settings-hint">Changes apply when saved</span></div>
           <form id="settingsForm" class="form-grid">
-            <label><span>Minecraft 监听入口</span><input name="listen" placeholder="0.0.0.0:25565" required><small>所有域名规则共用同一个 IP 和端口。</small></label>
-            <label><span>全局最大并发</span><input name="max_connections" type="number" min="1" max="1000000" required><small>入口允许的并发连接总数。</small></label>
-            <label><span>后端连接超时</span><span class="input-unit"><input name="connect_timeout_ms" type="number" min="1" required><b>ms</b></span><small>连接实际游戏服务器的最长等待时间。</small></label>
-            <label><span>握手读取超时</span><span class="input-unit"><input name="handshake_timeout_ms" type="number" min="1" required><b>ms</b></span><small>等待 Minecraft Java 握手域名的最长时间。</small></label>
-            <label><span>优雅退出宽限期</span><span class="input-unit"><input name="shutdown_grace_secs" type="number" min="1" max="300" required><b>s</b></span><small>重载入口时等待现有连接结束。</small></label>
-            <label><span>用户态复制缓冲区</span><span class="input-unit"><input name="copy_buffer_bytes" type="number" min="4096" max="1048576" step="1024" required><b>bytes</b></span><small>每个连接、每个方向各分配一份。</small></label>
-            <label><span>内核 Socket 缓冲区</span><span class="input-unit"><input name="socket_buffer_bytes" type="number" min="0" max="16777216" step="1024" required><b>bytes</b></span><small>设置为 0 时使用操作系统默认值。</small></label>
-            <label><span>监听 Backlog</span><span class="input-unit"><input name="listen_backlog" type="number" min="1" max="65535" required><b>conn</b></span><small>等待 accept 的内核连接队列长度。</small></label>
-            <label><span>统计日志间隔</span><span class="input-unit"><input name="stats_interval_secs" type="number" min="1" required><b>s</b></span><small>服务端聚合日志输出频率。</small></label>
-            <label class="toggle-field"><span><strong>TCP_NODELAY</strong><small>减少 Minecraft 小数据包的 Nagle 等待。</small></span><input name="tcp_nodelay" type="checkbox"><i></i></label>
-            <label class="toggle-field"><span><strong>SO_REUSEPORT</strong><small>仅在 Linux 多实例共享同一端口时启用。</small></span><input name="reuse_port" type="checkbox"><i></i></label>
-            <label class="toggle-field ingress-toggle"><span><strong>启用 Minecraft 入口</strong><small>关闭后管理控制台仍保持在线。</small></span><input name="proxy_enabled" type="checkbox"><i></i></label>
-            <div class="form-actions"><button class="primary-button" type="submit">保存并应用配置</button></div>
+            <label><span>Minecraft listen address</span><input name="listen" placeholder="0.0.0.0:25565" required><small>All domain name rules share the same IP and port.</small></label>
+            <label><span>Maximum connections</span><input name="max_connections" type="number" min="1" max="1000000" required><small>Maximum concurrent connections at the ingress.</small></label>
+            <label><span>Backend connection timeout</span><span class="input-unit"><input name="connect_timeout_ms" type="number" min="1" required><b>ms</b></span><small>Maximum wait time to connect to actual game server.</small></label>
+            <label><span>Handshake timeout</span><span class="input-unit"><input name="handshake_timeout_ms" type="number" min="1" required><b>ms</b></span><small>Maximum time to read the hostname from a Minecraft Java handshake.</small></label>
+            <label><span>Graceful shutdown period</span><span class="input-unit"><input name="shutdown_grace_secs" type="number" min="1" max="300" required><b>s</b></span><small>Time allowed for existing connections to close during shutdown.</small></label>
+            <label><span>Per-connection copy buffer</span><span class="input-unit"><input name="copy_buffer_bytes" type="number" min="4096" max="1048576" step="1024" required><b>bytes</b></span><small>Allocated per connection and direction.</small></label>
+            <label><span>Kernel socket buffer</span><span class="input-unit"><input name="socket_buffer_bytes" type="number" min="0" max="16777216" step="1024" required><b>bytes</b></span><small>Set to 0 to use the operating system default.</small></label>
+            <label><span>Listen backlog</span><span class="input-unit"><input name="listen_backlog" type="number" min="1" max="65535" required><b>conn</b></span><small>Length of kernel connection queue waiting for accept.</small></label>
+            <label><span>Statistics log interval</span><span class="input-unit"><input name="stats_interval_secs" type="number" min="1" required><b>s</b></span><small>How often aggregate statistics are logged.</small></label>
+            <label class="toggle-field"><span><strong>TCP_NODELAY</strong><small>Reduce delays from Nagle's algorithm for small Minecraft packets.</small></span><input name="tcp_nodelay" type="checkbox"><i></i></label>
+            <label class="toggle-field"><span><strong>SO_REUSEPORT</strong><small>Enable only when multiple Linux instances share this port.</small></span><input name="reuse_port" type="checkbox"><i></i></label>
+            <label class="toggle-field ingress-toggle"><span><strong>Enable Minecraft ingress</strong><small>The admin console remains available when Minecraft ingress is disabled.</small></span><input name="proxy_enabled" type="checkbox"><i></i></label>
+            <div class="form-actions"><button class="primary-button" type="submit">Save and apply configuration</button></div>
           </form>
         </article>
       </section>
@@ -328,69 +328,69 @@
   <div class="modal-backdrop" id="ruleModal" hidden>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="ruleModalTitle">
       <div class="modal-header">
-        <div><p class="panel-kicker">HOST ROUTE</p><h2 id="ruleModalTitle">新建路由</h2></div>
-        <button class="icon-button" data-close-modal aria-label="关闭规则编辑器"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        <div><p class="panel-kicker">HOST ROUTE</p><h2 id="ruleModalTitle">New Route</h2></div>
+        <button class="icon-button" data-close-modal aria-label="Close rule editor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
       <form id="ruleForm" class="form-grid compact">
-        <label><span>规则 ID</span><input name="id" pattern="[A-Za-z0-9_-]{1,32}" maxlength="32" required><small>保存后不可更改，仅允许字母、数字、短横线和下划线。</small></label>
-        <label><span>显示名称</span><input name="name" maxlength="64" required></label>
-        <label class="full"><span>匹配 Host</span><input name="host" placeholder="play.example.com, *.example.com" required><small>多个 host 用逗号分隔；支持 * 和 ?，单独 * 表示兜底。</small></label>
-        <label class="full"><span>后端地址池</span><textarea name="backend" rows="3" placeholder="backend-a.example.com:25565&#10;backend-b.example.com:25565" required></textarea><small>每行或逗号分隔一个主机:端口，最多 128 个；当前后端不可用时自动尝试下一个。</small></label>
-        <label class="full"><span>负载均衡策略</span><select name="strategy"><option value="sequential">顺序故障转移</option><option value="random">随机</option><option value="round-robin">轮询</option><option value="least-connections">最少连接</option><option value="lowest-latency">最低连接延迟</option></select><small>顺序模式优先使用第一个健康后端；其他模式先选目标，失败后继续尝试池内其余后端。</small></label>
-        <label class="full"><span>真实 IP 传递（PROXY Protocol）</span><select name="proxy_protocol" aria-describedby="proxyProtocolHelp"><option value="off">关闭（默认）</option><option value="v1">v1 · 文本头</option><option value="v2">v2 · 二进制头</option></select><small id="proxyProtocolHelp" class="field-warning">只有后端监听器明确支持同一版本时才启用；普通 Minecraft 服务端收到该头会无法完成握手。请同时限制后端端口仅允许代理访问。</small></label>
-        <label class="toggle-field full"><span><strong>改写后端握手 Host</strong><small>将握手域名改为后端主机名；代理公共服务器或后端要求固定域名时启用。</small></span><input name="modify_virtual_host" type="checkbox"><i></i></label>
-        <label class="toggle-field full"><span><strong>允许基岩版互通</strong><small>允许全局 Crossplay 入口将此路由作为 Java 上游。启用全局互通时，所选 Java 路由域名必须匹配一条已启用且允许互通的规则。</small></span><input name="crossplay_enabled" type="checkbox"><i></i></label>
+        <label><span>Rule ID</span><input name="id" pattern="[A-Za-z0-9_-]{1,32}" maxlength="32" required><small>Cannot be changed after saving, only letters, numbers, dashes and underscores are allowed.</small></label>
+        <label><span>Display name</span><input name="name" maxlength="64" required></label>
+        <label class="full"><span>Match host</span><input name="host" placeholder="play.example.com, *.example.com" required><small>Separate hosts with commas. Wildcards * and ? are supported; put a standalone * last.</small></label>
+        <label class="full"><span>Backend pool</span><textarea name="backend" rows="3" placeholder="backend-a.example.com:25565&#10;backend-b.example.com:25565" required></textarea><small>Enter host:port addresses, one per line or separated by commas (up to 128). YvLink tries another backend if one fails.</small></label>
+        <label class="full"><span>Load balancing strategy</span><select name="strategy"><option value="sequential">Sequential failover</option><option value="random">Random</option><option value="round-robin">Round robin</option><option value="least-connections">Least connections</option><option value="lowest-latency">Lowest latency</option></select><small>Sequential mode prefers the first healthy backend. Other strategies select a target, then try the remaining backends on failure.</small></label>
+        <label class="full"><span>Real IP forwarding (PROXY Protocol)</span><select name="proxy_protocol" aria-describedby="proxyProtocolHelp"><option value="off">Off (default)</option><option value="v1">v1 · text header</option><option value="v2">v2 · binary header</option></select><small id="proxyProtocolHelp" class="field-warning">Enable only if the backend supports the selected PROXY Protocol version. A standard Minecraft server cannot read this header. Restrict the backend port to trusted proxy connections.</small></label>
+        <label class="toggle-field full"><span><strong>Rewrite handshake hostname</strong><small>Replace the client's handshake hostname with the backend hostname when the backend requires a fixed host.</small></span><input name="modify_virtual_host" type="checkbox"><i></i></label>
+        <label class="toggle-field full"><span><strong>Allow Bedrock crossplay</strong><small>Allow the global Bedrock ingress to use this route as its Java upstream. Its Java hostname must match an enabled route that permits crossplay.</small></span><input name="crossplay_enabled" type="checkbox"><i></i></label>
         <section class="protocol-section full" aria-labelledby="healthCheckSectionTitle">
-          <label class="toggle-field"><span><strong id="healthCheckSectionTitle">主动后端健康检查</strong><small>空闲时主动探测后端；连续失败的节点会排到健康节点之后。</small></span><input name="health_check_enabled" type="checkbox" aria-controls="healthCheckFields"><i></i></label>
+          <label class="toggle-field"><span><strong id="healthCheckSectionTitle">Active backend health checks</strong><small>Probe backends even when idle. Unhealthy backends are tried after healthy ones.</small></span><input name="health_check_enabled" type="checkbox" aria-controls="healthCheckFields"><i></i></label>
           <div class="nested-fields" id="healthCheckFields" hidden>
-            <label class="full"><span>探测模式</span><select name="health_check_mode" aria-describedby="healthCheckModeHelp"><option value="tcp">TCP 端口可达</option><option value="minecraft-status">Minecraft Status + Ping（推荐）</option></select><small id="healthCheckModeHelp">Status 模式会完成 Java 握手、验证状态 JSON 和 Pong，可识别“端口在线但游戏服务异常”。</small></label>
-            <label><span>检查间隔</span><span class="input-unit"><input name="health_check_interval_secs" type="number" min="1" max="86400"><b>s</b></span><small>建议 15–60 秒，过短会增加后端连接日志。</small></label>
-            <label><span>整次探测超时</span><span class="input-unit"><input name="health_check_timeout_ms" type="number" min="100" max="60000"><b>ms</b></span><small>涵盖连接、Status 与 Ping，不能大于检查间隔。</small></label>
-            <label><span>离线阈值</span><input name="health_check_unhealthy_threshold" type="number" min="1" max="100"><small>连续失败多少次后标记离线。</small></label>
-            <label><span>恢复阈值</span><input name="health_check_healthy_threshold" type="number" min="1" max="100"><small>连续成功多少次后恢复健康。</small></label>
-            <label class="minecraft-health-only"><span>探测 Host（可选）</span><input name="health_check_minecraft_host" maxlength="255" placeholder="自动按路由或后端推导"><small>后端要求固定虚拟主机时填写；不支持通配符。</small></label>
-            <label class="minecraft-health-only"><span>探测协议号</span><input name="health_check_minecraft_protocol" type="number" min="0" max="2147483647"><small>默认 769；多数服务端会正常回应不同版本的 Status。</small></label>
-            <p class="field-note full">Status 模式只验证服务器列表协议，不执行登录或模组协商；全部节点离线时仍会做最后一次真实连接尝试。</p>
+            <label class="full"><span>Check mode</span><select name="health_check_mode" aria-describedby="healthCheckModeHelp"><option value="tcp">TCP port check</option><option value="minecraft-status">Minecraft Status + Ping (recommended)</option></select><small id="healthCheckModeHelp">Minecraft Status mode checks the Java handshake, status JSON, and Pong to detect a server whose TCP port is open but whose game service is unhealthy.</small></label>
+            <label><span>Check interval</span><span class="input-unit"><input name="health_check_interval_secs" type="number" min="1" max="86400"><b>s</b></span><small>Recommended: 15–60 seconds. Short intervals create more backend connections.</small></label>
+            <label><span>Probe timeout</span><span class="input-unit"><input name="health_check_timeout_ms" type="number" min="100" max="60000"><b>ms</b></span><small>Covers connection, Status, and Ping. Must not exceed the check interval.</small></label>
+            <label><span>Offline threshold</span><input name="health_check_unhealthy_threshold" type="number" min="1" max="100"><small>How many consecutive failures to mark offline.</small></label>
+            <label><span>Recovery threshold</span><input name="health_check_healthy_threshold" type="number" min="1" max="100"><small>How many consecutive successful attempts to restore health.</small></label>
+            <label class="minecraft-health-only"><span>Probe hostname (optional)</span><input name="health_check_minecraft_host" maxlength="255" placeholder="Use route or backend hostname automatically"><small>Use when the backend requires a fixed virtual host. Wildcards are not supported.</small></label>
+            <label class="minecraft-health-only"><span>Probe protocol number</span><input name="health_check_minecraft_protocol" type="number" min="0" max="2147483647"><small>Defaults to 769. Most servers answer Status requests from other protocol versions.</small></label>
+            <p class="field-note full">Status checks validate the server list protocol, not login or mod negotiation. YvLink still attempts a real connection if every backend is marked offline.</p>
           </div>
         </section>
         <section class="protocol-section full" aria-labelledby="statusSectionTitle">
-          <label class="toggle-field"><span><strong id="statusSectionTitle">代理托管状态响应</strong><small>完全自定义，或保留后端模组字段后按需覆盖。</small></span><input name="status_enabled" type="checkbox" aria-controls="statusFields"><i></i></label>
+          <label class="toggle-field"><span><strong id="statusSectionTitle">Proxy-managed Status response</strong><small>Generate a response or selectively override backend fields while preserving mod metadata.</small></span><input name="status_enabled" type="checkbox" aria-controls="statusFields"><i></i></label>
           <div class="nested-fields" id="statusFields" hidden>
-            <label><span>状态来源</span><select name="status_mode"><option value="custom">完全由代理生成</option><option value="backend">后端透传后覆盖</option></select><small>模组服推荐后端模式，可保留 forgeData、modinfo 和 favicon。</small></label>
-            <label class="backend-status-only"><span>缓存 TTL</span><span class="input-unit"><input name="status_cache_ttl_secs" type="number" min="-1" max="86400"><b>s</b></span><small>-1 禁用；按后端与客户端协议分别缓存。</small></label>
-            <label class="full"><span>MOTD / 文本组件</span><textarea name="status_motd" rows="3" maxlength="2048" placeholder="后端模式留空即保留原值"></textarea><small>支持 § 颜色代码或完整 JSON 文本组件；后端模式留空不覆盖。</small></label>
-            <label><span>版本显示</span><input name="status_version_name" maxlength="64" placeholder="留空保留后端值"></label>
-            <label><span>协议号</span><input name="status_protocol" type="number" placeholder="留空保留或跟随"><small>完全自定义时留空跟随客户端；后端模式留空保留。</small></label>
-            <label><span>显示在线人数</span><input name="status_online" type="number" min="0" max="1000000" placeholder="留空保留"></label>
-            <label><span>显示最大人数</span><input name="status_max" type="number" min="0" max="1000000" placeholder="留空保留"></label>
-            <label class="toggle-field full backend-status-only"><span><strong>后端离线 fallback</strong><small>连接或状态解析失败时仍向服务器列表返回可读状态。</small></span><input name="status_fallback_enabled" type="checkbox" aria-controls="fallbackFields"><i></i></label>
+            <label><span>Status source</span><select name="status_mode"><option value="custom">Generated by proxy</option><option value="backend">Backend with overrides</option></select><small>Use backend mode for modded servers to preserve forgeData, modinfo, and favicon.</small></label>
+            <label class="backend-status-only"><span>Cache TTL</span><span class="input-unit"><input name="status_cache_ttl_secs" type="number" min="-1" max="86400"><b>s</b></span><small>Set to -1 to disable caching. Entries are cached per backend and client protocol.</small></label>
+            <label class="full"><span>MOTD / Text Component</span><textarea name="status_motd" rows="3" maxlength="2048" placeholder="Leave blank to preserve backend value"></textarea><small>Accepts § color codes or a JSON text component. Leave blank in backend mode to preserve the backend value.</small></label>
+            <label><span>Displayed version</span><input name="status_version_name" maxlength="64" placeholder="Preserve backend value"></label>
+            <label><span>Protocol number</span><input name="status_protocol" type="number" placeholder="Follow client protocol"><small>Leave blank to follow the client in custom mode or preserve the backend value in backend mode.</small></label>
+            <label><span>Displayed online players</span><input name="status_online" type="number" min="0" max="1000000" placeholder="Preserve backend value"></label>
+            <label><span>Displayed maximum players</span><input name="status_max" type="number" min="0" max="1000000" placeholder="Preserve backend value"></label>
+            <label class="toggle-field full backend-status-only"><span><strong>Offline backend fallback</strong><small>Return a readable server list response when backend connection or Status fails.</small></span><input name="status_fallback_enabled" type="checkbox" aria-controls="fallbackFields"><i></i></label>
             <div class="nested-fields full fallback-fields" id="fallbackFields" hidden>
-              <label class="full"><span>离线 MOTD</span><textarea name="fallback_motd" rows="2" maxlength="2048" placeholder="§c服务器维护中，请稍后再试"></textarea></label>
-              <label><span>离线版本显示</span><input name="fallback_version_name" maxlength="64" placeholder="后端离线"></label>
-              <label><span>离线协议号</span><input name="fallback_protocol" type="number" placeholder="-1"></label>
-              <label><span>离线在线人数</span><input name="fallback_online" type="number" min="0" max="1000000" placeholder="0"></label>
-              <label><span>离线最大人数</span><input name="fallback_max" type="number" min="0" max="1000000" placeholder="100"></label>
+              <label class="full"><span>Offline MOTD</span><textarea name="fallback_motd" rows="2" maxlength="2048" placeholder="§cServer maintenance in progress, please try again later"></textarea></label>
+              <label><span>Offline version display</span><input name="fallback_version_name" maxlength="64" placeholder="Backend Offline"></label>
+              <label><span>Offline protocol number</span><input name="fallback_protocol" type="number" placeholder="-1"></label>
+              <label><span>Fallback online players</span><input name="fallback_online" type="number" min="0" max="1000000" placeholder="0"></label>
+              <label><span>Fallback maximum players</span><input name="fallback_max" type="number" min="0" max="1000000" placeholder="100"></label>
             </div>
           </div>
         </section>
         <section class="protocol-section full" aria-labelledby="whitelistSectionTitle">
-          <label class="toggle-field"><span><strong id="whitelistSectionTitle">代理白名单</strong><small>在连接后端前读取 Login Start 玩家名并提前拒绝。</small></span><input name="whitelist_enabled" type="checkbox" aria-controls="whitelistFields"><i></i></label>
+          <label class="toggle-field"><span><strong id="whitelistSectionTitle">Proxy whitelist</strong><small>Read the player's name from Login Start and reject unlisted players before connecting to a backend.</small></span><input name="whitelist_enabled" type="checkbox" aria-controls="whitelistFields"><i></i></label>
           <div class="nested-fields" id="whitelistFields" hidden>
-            <label class="full"><span>允许的玩家名</span><textarea name="whitelist" rows="4" placeholder="Alice&#10;Bob"></textarea><small>每行或逗号分隔一个玩家名，不区分大小写，最多 10000 个。</small></label>
-            <label class="full"><span>拒绝消息</span><textarea name="whitelist_message" rows="2" maxlength="1024" placeholder="§c你不在此服务器的白名单中。"></textarea><small>代理仅做提前筛选，玩家身份最终仍由在线模式后端认证。</small></label>
+            <label class="full"><span>Allowed player names</span><textarea name="whitelist" rows="4" placeholder="Alice&#10;Bob"></textarea><small>Separate one player name per line or comma, case-insensitive, up to 10,000.</small></label>
+            <label class="full"><span>Whitelist rejection message</span><textarea name="whitelist_message" rows="2" maxlength="1024" placeholder="§cYou are not in the whitelist of this server."></textarea><small>This is an early name check. The backend remains responsible for authenticating player identity.</small></label>
           </div>
         </section>
-        <label class="toggle-field full"><span><strong>立即启用</strong><small>启用后纳入当前单端口路由表。</small></span><input name="enabled" type="checkbox" checked><i></i></label>
-        <div class="form-actions full"><button class="secondary-button" type="button" data-close-modal>取消</button><button class="primary-button" type="submit">保存路由</button></div>
+        <label class="toggle-field full"><span><strong>Enable route</strong><small>Include this route in the shared ingress when enabled.</small></span><input name="enabled" type="checkbox" checked><i></i></label>
+        <div class="form-actions full"><button class="secondary-button" type="button" data-close-modal>Cancel</button><button class="primary-button" type="submit">Save route</button></div>
       </form>
     </section>
   </div>
 
   <div class="modal-backdrop update-notice" id="updateNotice" hidden>
     <section class="modal update-notice-card" role="dialog" aria-modal="true" aria-labelledby="updateNoticeTitle" aria-describedby="updateNoticeMessage">
-      <div class="modal-header"><div><p class="panel-kicker">AUTO UPDATE</p><h2 id="updateNoticeTitle">自动更新状态</h2></div><button class="icon-button" id="closeUpdateNotice" type="button" aria-label="关闭自动更新提示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <div class="modal-header"><div><p class="panel-kicker">AUTO UPDATE</p><h2 id="updateNoticeTitle">Automatic update status</h2></div><button class="icon-button" id="closeUpdateNotice" type="button" aria-label="Close update notice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <p class="update-notice-message" id="updateNoticeMessage"></p>
-      <div class="form-actions"><button class="secondary-button" id="dismissUpdateNotice" type="button">知道了</button><button class="primary-button" id="openUpdateSettings" type="button">查看更新设置</button></div>
+      <div class="form-actions"><button class="secondary-button" id="dismissUpdateNotice" type="button">OK</button><button class="primary-button" id="openUpdateSettings" type="button">View update settings</button></div>
     </section>
   </div>
 
@@ -403,13 +403,13 @@
       </div>
       <div class="auth-content">
         <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><p>SECURE CONTROL PLANE</p><h1>YvLink</h1></div></div>
-        <p class="auth-copy">管理 Minecraft Java 单端口域名路由、实时流量与入口参数。</p>
+        <p class="auth-copy">Manage Minecraft Java single-port domain name routing, real-time traffic and entry parameters.</p>
         <form id="loginForm">
-          <label><span>管理令牌</span><input id="tokenInput" type="password" autocomplete="current-password" minlength="32" required><small>登录后会保存在此浏览器，刷新页面无需重复输入；点击“退出登录”立即清除。</small></label>
+          <label><span>Admin token</span><input id="tokenInput" type="password" autocomplete="current-password" minlength="32" required><small>The token is stored in this browser so you do not need to re-enter it after refreshing. Click "Log out" to clear it.</small></label>
           <p class="form-error" id="loginError" aria-live="polite"></p>
-          <button class="primary-button wide" type="submit">进入控制台</button>
+          <button class="primary-button wide" type="submit">Open console</button>
         </form>
-        <small class="auth-host">mc.lic6.top · encrypted session</small>
+        <small class="auth-host">YvLink control panel · use HTTPS for remote access</small>
       </div>
     </section>
   </div>

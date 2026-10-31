@@ -1,6 +1,6 @@
 #!/bin/sh
-# 仅接受 GitHub Release 的 Ubuntu 24.04 x86_64 安装包，下载后先运行 --version，
-# 再原子替换二进制。失败会回滚上一份并重启旧服务。
+# Accept only the Ubuntu 24.04 x86_64 GitHub Release archive. Check --version
+# before replacing the binary atomically; restore the previous version on failure.
 set -eu
 
 repo_api='https://api.github.com/repos/baiyun1123/YvLink/releases/latest'
@@ -49,7 +49,7 @@ PY
 }
 
 if ! systemctl is-active --quiet mc-proxy.service; then
-  write_status 'deferred' 'mc-proxy 服务未运行，跳过自动升级。'
+  write_status 'deferred' 'mc-proxy is not running; automatic update deferred.'
   exit 0
 fi
 
@@ -68,7 +68,7 @@ asset_url=$(sed -n '2p' "$work_dir/asset.txt")
 current_version=$("$binary_path" --version 2>/dev/null || true)
 expected_version=${release_tag#v}
 if [ "$current_version" = "$expected_version" ]; then
-  write_status 'up-to-date' "当前已是 $release_tag。"
+  write_status 'up-to-date' "Already up to date: $release_tag."
   exit 0
 fi
 if release_is_newer "$current_version" "$expected_version"; then
@@ -76,25 +76,25 @@ if release_is_newer "$current_version" "$expected_version"; then
 else
   compare_result=$?
   if [ "$compare_result" -eq 1 ]; then
-    write_status 'up-to-date' "当前版本 $current_version 不低于 GitHub 的 $release_tag，跳过降级。"
+    write_status 'up-to-date' "Current version $current_version is at least $release_tag; downgrade skipped."
     exit 0
   else
-    write_status 'failed' "无法比较当前版本 $current_version 与 GitHub 版本 $release_tag。"
+    write_status 'failed' "Cannot compare current version $current_version with GitHub release $release_tag."
     exit 1
   fi
 fi
 
-write_status 'downloading' "正在下载 $release_tag。"
+write_status 'downloading' "Downloading $release_tag."
 curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 "$asset_url" >"$work_dir/release.tar.gz"
 mkdir "$work_dir/package"
 tar -xzf "$work_dir/release.tar.gz" -C "$work_dir/package"
 candidate=$(find "$work_dir/package" -type f -name mc-proxy -print -quit)
 if [ -z "$candidate" ] || [ ! -x "$candidate" ]; then
-  write_status 'failed' '发布包中没有可执行 mc-proxy。'
+  write_status 'failed' 'Release archive contains no executable mc-proxy binary.'
   exit 1
 fi
 if [ "$($candidate --version)" != "$expected_version" ]; then
-  write_status 'failed' '发布包版本与 GitHub 标签不一致。'
+  write_status 'failed' 'Release binary version does not match the GitHub tag.'
   exit 1
 fi
 
@@ -102,11 +102,11 @@ install -m 0755 "$candidate" "$binary_path.next"
 cp -p "$binary_path" "$binary_path.previous"
 mv -f "$binary_path.next" "$binary_path"
 if systemctl restart mc-proxy.service && sleep 2 && systemctl is-active --quiet mc-proxy.service; then
-  write_status 'updated' "已升级到 $release_tag。"
+  write_status 'updated' "Updated to $release_tag."
   exit 0
 fi
 
 mv -f "$binary_path.previous" "$binary_path"
 systemctl restart mc-proxy.service || true
-write_status 'rolled-back' "升级到 $release_tag 失败，已回滚上一版本。"
+write_status 'rolled-back' "Update to $release_tag failed; restored the previous version."
 exit 1

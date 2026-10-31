@@ -46,7 +46,7 @@ where
             biased;
 
             () = &mut shutdown => {
-                info!("收到退出信号，停止接受新连接");
+                info!("Shutdown signal received; stopping new connections");
                 break;
             }
             task_result = tasks.join_next(), if !tasks.is_empty() => {
@@ -73,12 +73,12 @@ where
                             Ok(permit) => permit,
                             Err(TryAcquireError::NoPermits) => {
                                 metrics.rejected();
-                                debug!(%client_addr, "连接数已达上限，拒绝连接");
+                                debug!(%client_addr, "The number of connections has reached the upper limit and the connection has been rejected");
                                 drop(client);
                                 continue;
                             }
                             Err(TryAcquireError::Closed) => {
-                                warn!("连接限制器已关闭");
+                                warn!("Connection limiter closed");
                                 drop(client);
                                 break;
                             }
@@ -102,7 +102,7 @@ where
                                         elapsed_ms = report.elapsed_millis,
                                         backend = %report.backend,
                                         route_id = %report.route_id,
-                                        "连接结束"
+                                        "Connection End"
                                     );
                                 }
                                 Err(error) => {
@@ -112,7 +112,7 @@ where
                         });
                     }
                     Err(error) if is_temporary_accept_error(&error) => {
-                        warn!(%error, "临时 accept 错误");
+                        warn!(%error, "Temporary accept error");
                     }
                     Err(error) => return Err(error.into()),
                 }
@@ -133,10 +133,14 @@ where
     })
     .await
     {
-        Ok(()) => info!("所有存量连接已结束"),
+        Ok(()) => info!("All active connections closed"),
         Err(_) => {
             let remaining = tasks.len();
-            warn!(remaining, ?grace, "优雅退出超时，取消剩余连接");
+            warn!(
+                remaining,
+                ?grace,
+                "Graceful shutdown timed out; cancelling remaining connections"
+            );
             tasks.abort_all();
             while tasks.join_next().await.is_some() {}
         }
@@ -174,7 +178,10 @@ async fn run_health_probe(target: crate::config::HealthProbeTarget, metrics: Arc
         }
         Err(_) => {
             metrics.health_check_failed();
-            Err(io::Error::new(io::ErrorKind::TimedOut, "健康检查超时"))
+            Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Health checkup timed out.",
+            ))
         }
     };
     target.complete(result);
@@ -183,16 +190,16 @@ async fn run_health_probe(target: crate::config::HealthProbeTarget, metrics: Arc
 fn record_proxy_error(metrics: &Metrics, client_addr: std::net::SocketAddr, error: &ProxyError) {
     if error.is_backend_failure() {
         metrics.backend_failed();
-        warn!(%client_addr, %error, "后端连接失败");
+        warn!(%client_addr, %error, "Backend connection failed");
     } else {
         metrics.forwarding_failed();
-        debug!(%client_addr, %error, "连接转发异常结束");
+        debug!(%client_addr, %error, "Connection forwarding abnormal end");
     }
 }
 
 fn report_task_result(result: Option<Result<(), tokio::task::JoinError>>) {
     if let Some(Err(error)) = result {
-        error!(%error, "连接任务异常退出");
+        error!(%error, "Connection task exited unexpectedly");
     }
 }
 
@@ -220,7 +227,7 @@ fn log_snapshot(metrics: &Metrics) {
         forwarding_failures = snapshot.forwarding_failures,
         upload_bytes = snapshot.upload_bytes,
         download_bytes = snapshot.download_bytes,
-        "代理统计"
+        "Proxy Statistics"
     );
 }
 
